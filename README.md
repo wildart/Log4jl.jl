@@ -65,7 +65,6 @@ Macro `@Log4jl.configure` accepts keyword arguments and a programmatic configura
     - `config`: Location of the configuration file.
     - `level`: Logging status level
     - `event`: Defines event class
-    - `selector`: Defines logger context selector
 
 - A programmatic configuration can be defined in `begin...end` block that is passed as a last parameter.
 
@@ -100,4 +99,4 @@ If the root logger is required use macro `@Log4jl.rootlogger`.
 
 1. `Log4jl` module is referenced
 2. `Log4jl.__init__` is called
-    1. Context selector initialized as `LOG4JL_CONTEXT_SELECTOR` constant
+    1. Context selector initialized as `LOG4JL_CONTEXT_SELECTOR` constant from environment variable with the same name.

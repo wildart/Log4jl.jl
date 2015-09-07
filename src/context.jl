@@ -14,7 +14,7 @@ end
 LoggerContext(name::AbstractString) = LoggerContext(name, LOGGERS(), DefaultConfiguration, "")
 
 
-"Returns a logger."
+"Returns a logger from a logger context"
 function logger(ctx::LoggerContext, name::AbstractString, msgfact::MSGFACTORY=MSGFACTORY())
     # return logger in exists
     name in ctx && return ctx.loggers[name]
