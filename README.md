@@ -50,7 +50,7 @@ using Log4jl
 # default call
 @Log4jl.configure
 
-# Configuring a logger context with a programatic configuration
+# Configuring a logger context with a programmatic configuration
 @Log4jl.configure level=Log4jl.Level.DEBUG begin
     Configuration("Custom",
         PROPERTIES(),
@@ -59,7 +59,7 @@ using Log4jl
     )
 end
 ```
-Macro `@Log4jl.configure` accepts keyword arguments and a programatic configuration.
+Macro `@Log4jl.configure` accepts keyword arguments and a programmatic configuration.
 
 - There are following keyword arguments:
     - `config`: Location of the configuration file.
@@ -67,7 +67,7 @@ Macro `@Log4jl.configure` accepts keyword arguments and a programatic configurat
     - `event`: Defines event class
     - `selector`: Defines logger context selector
 
-- A programatic configuration can be defined in `begin...end` block that is passed as a last parameter.
+- A programmatic configuration can be defined in `begin...end` block that is passed as a last parameter.
 
 
 ### Logger
@@ -81,7 +81,7 @@ In order to create logger, call macro `@Log4jl.logger [<name>] [<message_type>]`
 # get the configured logger by name (used module name by default)
 @Log4jl.logger
 
-# get the configured logger by name explisitly
+# get the configured logger by name explicitly
 @Log4jl.logger "TestLogger"
 
 # get the configured logger by name that will use parameterized messages
@@ -94,3 +94,10 @@ Macro `@Log4jl.logger` creates logger instance in current module. The macro acce
 2. `message_type`: a message type used in a configured logger
 
 If the root logger is required use macro `@Log4jl.rootlogger`.
+
+
+## Loading sequence
+
+1. `Log4jl` module is referenced
+2. `Log4jl.__init__` is called
+    1. Context selector initialized as `LOG4JL_CONTEXT_SELECTOR` constant
