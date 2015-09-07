@@ -62,39 +62,31 @@ type SingleContextSelector <: ContextSelector
     SingleContextSelector() = new(LoggerContext("Default"))
 end
 context(ctxsel::SingleContextSelector, fqmn::AbstractString, cfgloc::AbstractString="") = ctxsel.context
-contexts(ctxsel::SingleContextSelector) = LoggerContext[ctxsel.context]
+contexts(ctxsel::SingleContextSelector) = Dict(:Default=>ctxsel.context)
 
 
 """Module context selector choses `LoggerContext` based on module name
 
-All `LoggerContext` instances are stored in module constants with unique name `__MLC<ID>__`
+All `LoggerContext` instances are stored in module constants with unique name `__Log4jl_LC<ID>__`
 """
 type ModuleContextSelector <: ContextSelector
     default::LoggerContext
     ModuleContextSelector() = new(LoggerContext("Default"))
 end
-function context(ctxsel::ModuleContextSelector, fqmn::AbstractString, cfgloc::AbstractString="")
-    # if module exists
-    ms = symbol(fqmn)
-    if isdefined(ms)
-        mlcid = string(hash(fqmn))
 
-        # return value of the module constant
-        m = eval(ms)
-        mlc_var = "__MLC$(mlcid)__"
-        if isconst(m, symbol(mlc_var))
-            try
-                return eval(parse("$(fqmn).$(mlc_var)"))
-            catch
-            end
-        end
+function context(ctxsel::ModuleContextSelector, fqmn::AbstractString, cfgloc::AbstractString="")
+    # return default context if module doesn't exist
+    m = getmodule(fqmn)
+    if m !== nothing
+        mlc_var = mlcvar(fqmn)
+        isconst(m, mlc_var) && return getfield(m, mlc_var)
 
         # otherwise create a new context
-        ctx = LoggerContext(mlcid)
+        ctx = LoggerContext(string(mlc_var))
         ctx.configLocation = cfgloc
 
         # define constant in module with LoggerContext object
-        ccall(:jl_set_const, Void, (Any, Any, Any), m,  symbol(mlc_var), ctx)
+        ccall(:jl_set_const, Void, (Any, Any, Any), m,  mlc_var, ctx)
 
         return ctx
     end
@@ -102,6 +94,26 @@ function context(ctxsel::ModuleContextSelector, fqmn::AbstractString, cfgloc::Ab
 end
 
 function contexts(ctxsel::ModuleContextSelector)
-    # list all modules and retrieve their contexts
-    return LoggerContext[]
+
+    function submodules(m::Module, mdls::Vector{Symbol}= Symbol[], ctxs = Dict{Symbol,LoggerContext}())
+        for vs in names(m, true)
+            !isdefined(m, vs) && continue
+            v = getfield(m, vs)
+            if isa(v, Module) && vs ∉ [:Main, :Core, :Base]
+                fqmn = symbol(v)
+                fqmn in mdls && continue
+                push!(mdls, fqmn)
+                mlc_var = mlcvar(string(fqmn))
+                if isdefined(v, mlc_var)
+                    ctxs[fqmn] = getfield(v, mlc_var)
+                end
+                submodules(v, mdls, ctxs)
+            end
+        end
+        return mdls, ctxs
+    end
+
+    mdls, ctxs = submodules(Main)
+    ctxs[:Default] = ctxsel.default
+    return ctxs
 end
