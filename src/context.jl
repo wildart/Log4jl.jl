@@ -11,11 +11,11 @@ type LoggerContext
     config::Configuration
     configLocation::AbstractString
 end
-LoggerContext(name::AbstractString) = LoggerContext(name, LOGGERS(), DefaultConfiguration, "")
+LoggerContext(name::AbstractString) = LoggerContext(name, LOGGERS(), DefaultConfiguration(), "")
 
 
 "Returns a logger from a logger context"
-function logger(ctx::LoggerContext, name::AbstractString, msgfact::MSGFACTORY=MSGFACTORY())
+function logger(ctx::LoggerContext, name::AbstractString, msg::FACTORY=FACTORY())
     # return logger in exists
     name in ctx && return ctx.loggers[name]
 

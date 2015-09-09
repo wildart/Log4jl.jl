@@ -13,7 +13,7 @@ end
 function Log4jlEvent(logger::AbstractString, marker::MARKER, fqmn::AbstractString, level::LEVEL, msg::MESSAGE)
     return Log4jlEvent(logger, marker, fqmn, level, msg, time_ns())
 end
-Log4jlEvent(timestamp::UInt64) = Log4jlEvent("",MARKER(),"", LEVEL(), MESSAGE(), time_ns())
+Log4jlEvent(timestamp::UInt64) = Log4jlEvent("",MARKER(),"", LEVEL(), MESSAGE(), timestamp)
 Log4jlEvent() = Log4jlEvent(time_ns())
 
 function Base.show(io::IO, evnt::Log4jlEvent)

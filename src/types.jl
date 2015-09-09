@@ -1,4 +1,4 @@
-import Base: append!, serialize
+import Base: append!, serialize, show
 
 module Level
     @enum EventLevel ALL=0 TRACE=100 DEBUG=200 INFO=300 WARN=400 ERROR=500 FATAL=600 OFF=1000
@@ -78,19 +78,18 @@ contenttype(lyt::Layout) = throw(
 
 
 """ Abstract type for layouts that result in a String """
-abstract StringLayout
+abstract StringLayout <: Layout
 contenttype(lyt::StringLayout) = "text/plain"
-format(lyt::StringLayout, evnt::Event) = serialize(lyt, event)
 
 
 """ Abstract appender
 
-Any appender must have two basic fields:
-* name::String - appender name for reference
-* layout::Nullable{Layout} - layout object for output modification
+Any appender implementation must have two fields:
 
-In addition to basic fields, every appender should have
-a method `append!`:
+- `name`::AbstractString - appender name for reference
+- `layout`::Nullable{Layout} - layout object for output modification
+
+In addition to basic fields, every appender should have a method `append!`:
 * append!(apnd::Appender, evnt::Event) - appends event
 """
 abstract Appender
@@ -105,6 +104,44 @@ layout(apnd::Appender) = isdefined(apnd, :layout) ? apnd.layout : throw(Assertio
 append!(apnd::Appender, evnt::Event) = throw(AssertionError("Function 'append!' is not implemented for type $(typeof(apnd))"))
 
 
+""" Abstract configuration
+
+Any configuration type implementation must have two fields:
+
+- `name`::AbstractString, the configuration name for a reference
+- `source`::AbstractString, a source of the configuration
+
+Any configuration must implement following set of methods:
+
+- logger(Configuration, AbstractString) -> LoggerConfig
+- appender(Configuration, AbstractString) -> Appender
+- loggers(Configuration) -> Dict{AbstractString, LoggerConfig}
+- appenders(Configuration) -> Dict{AbstractString, Appender}
+"""
+abstract Configuration
+
+show(io::IO, cfg::Configuration) = print(io, "Configuration(", cfg.name, ")")
+
+"Configuration name for a reference"
+name(cfg::Configuration) = isdefined(cfg, :name) ? cfg.name : throw(AssertionError("Define field 'name' in type $(typeof(cfg))"))
+
+"Returns the source of this configuration"
+source(cfg::Configuration) = isdefined(cfg, :source) ? cfg.source : throw(AssertionError("Define field 'source' in type $(typeof(cfg))"))
+
+"Returns  the appropriate `LoggerConfig` for a `Logger` name"
+logger(cfg::Configuration, name::AbstractString) = throw(AssertionError("Function 'logger' is not implemented for type $(typeof(cfg))"))
+
+"Returns  `Appender`  with the specified `name`"
+appender(cfg::Configuration, name::AbstractString) = throw(AssertionError("Function 'appender' is not implemented for type $(typeof(cfg))"))
+
+"Return a list of `Logger`s from the configuration"
+loggers(cfg::Configuration) = throw(AssertionError("Function 'loggers' is not implemented for type $(typeof(cfg))"))
+
+"Return a list of `Appender`s from the configuration"
+appenders(cfg::Configuration) = throw(AssertionError("Function 'appenders' is not implemented for type $(typeof(cfg))"))
+
+
+"An `Appender` reference"
 type AppenderRef
     ref::AbstractString
     level::Level.EventLevel
@@ -116,6 +153,7 @@ end
 typealias MARKER Nullable{Symbol}
 typealias MESSAGE Nullable{Message}
 typealias LEVEL Nullable{Level.EventLevel}
-typealias MSGFACTORY Nullable{Function}
+typealias FACTORY Nullable{DataType}
+typealias CONFIGURATION Nullable{Configuration}
 typealias PROPERTIES Dict{AbstractString, AbstractString}
 typealias APPENDERS Dict{AbstractString, Appender}
