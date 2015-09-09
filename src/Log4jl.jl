@@ -2,10 +2,10 @@ module Log4jl
 
 export Level,
            Message, format, formatted, parameters,
-           #Logger, level,
            Layout, format, header, footer,
            Appender, name, layout, append!,
-           Configuration, logger, loggers, appender, appenders
+           Configuration, logger, loggers, appender, appenders,
+           Logger, level
 
 # Imports
 include("utils.jl")

@@ -1,25 +1,20 @@
-# Log4jl
+# Log4jl - a logging framework for Julia
 
-[![Build Status](https://travis-ci.org/wildart/Log4jl.jl.svg?branch=master)](https://travis-ci.org/wildart/Log4jl.jl)
+[![Build Status](https://travis-ci.org/wildart/Log4jl.jl.svg?branch=master)](https://travis-ci.org/wildart/Log4jl.jl)[![Coverage Status](https://coveralls.io/repos/wildart/Log4jl.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/wildart/Log4jl.jl?branch=master)
 
-# Links
-(http://logging.apache.org/log4j/2.x/manual/architecture.html)
-(http://logging.apache.org/log4j/2.x/log4j-api/apidocs/index.html)
-(http://grepcode.com/snapshot/repo1.maven.org/maven2/org.apache.logging.log4j/log4j-core/2.1/)
-(http://grepcode.com/snapshot/repo1.maven.org/maven2/org.apache.logging.log4j/log4j-api/2.1/)
+**Log4jl** is a comprehensive and flexible logging framework for Julia programs.
+
 
 ## Dev Notes
 
-### Design
+### Architecture
+[Log4jl](http://github.comwildart/Log4jl.jl) has similar architecture as [Apache Log4j 2](http://logging.apache.org/log4j/2.x/manual/architecture.html) framework.
+
 - Loggers are wrappers around configuration
-- Loggers would change behavior if configuration is changed.
+- Loggers would change behavior if configuration is changed
 - Logger hierarchy based on hierarchy of configurations
 - Global logger context keeps track of all loggers
-- ERROR is default level of root logger
-- Root logger has no name and additivity
-- For custom formated messages, create two functions with the same name and following signatures:
-  - <message_type_function>(msg::AbstractString, params...) => Message
-  - <message_type_function>(msg::Any) => Message
+- Root logger has no name and additivity, its default level is ERROR
 
 ### Implementation details
 - 'isenabled' checks if logger allowed to process event at specified level
@@ -30,16 +25,16 @@
 - Multi-threading support
 - Custom log levels
 - Filters
-  - Accept: no filters called, accept event
-  - Deny: ignore event, return to caller
-  - Neutral: pass event to other filters
+    - Accept: no filters called, accept event
+    - Deny: ignore event, return to caller
+    - Neutral: pass event to other filters
 - Lookups
 - Markers
 - Appended additivity: event processed by logger and all its ancestors.
 - Configuration formats: JSON, XML, YAML, DSL (macro based)
 - Handle configuration recursion
 
-### Use
+### Useful packages
 - Formating.jl
 
 
@@ -108,6 +103,11 @@ Macro `@Log4jl.logger` creates logger instance in current module. The macro acce
 
 If the root logger is required use macro `@Log4jl.rootlogger`.
 
+### Message
+
+- For custom formated messages, create two functions with the same name and following signatures:
+    - <message_type_function>(msg::AbstractString, params...) => Message
+    - <message_type_function>(msg::Any) => Message
 
 ## Loading sequence
 

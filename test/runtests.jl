@@ -1,5 +1,6 @@
-using Log4jl
-using Base.Test
+tests = ["message"]
 
-# write your own tests here
-@test 1 == 1
+for t in tests
+    fp = "$t.jl"
+    include(fp)
+end
