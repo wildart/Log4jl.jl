@@ -67,11 +67,11 @@ module Messages
     simplemessage(msg::AbstractString, params...) = SimpleMessage(msg)
     simplemessage(msg::Any) = ObjectMessage(msg)
 
-    parameterizedmessage(msg::AbstractString, params...) = StringFormattedMessage(msg, [params...])
-    parameterizedmessage(msg::Any) = ObjectMessage(msg)
+    parameterizedmessage(msg::AbstractString, params...) = ParameterizedMessage(msg, params...)
+    parameterizedmessage(msg::Any) = simplemessage(msg)
 
-    printfformattermessage(msg::AbstractString, params...) = PrintfFormattedMessage(msg, [params...])
-    printfformattermessage(msg::Any) = ObjectMessage(msg)
+    printfformattermessage(msg::AbstractString, params...) = PrintfFormattedMessage(msg, params...)
+    printfformattermessage(msg::Any) = simplemessage(msg)
 
 
     export simplemessage, parameterizedmessage, printfformattermessage
