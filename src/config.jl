@@ -11,28 +11,41 @@ type LoggerConfig
 end
 
 typealias LOGCONFIGS Dict{AbstractString, LoggerConfig}
-typealias LOGCONFIG   Nullable{LoggerConfig}
 
+# Constructors
 function LoggerConfig(name::AbstractString, level::Level.EventLevel,
                                     additive::Bool = true, appenders::APPENDERS=APPENDERS())
     return LoggerConfig(name, LEVEL(level), additive, appenders,
-                                      LOGCONFIG(), FACTORY(Log4jlEvent))
+                                      Nullable{LoggerConfig}(), FACTORY(Log4jlEvent))
 end
 LoggerConfig(level::Level.EventLevel) = LoggerConfig("", level)
-LoggerConfig() = LoggerConfig(Level.ERROR)
+LoggerConfig() = LoggerConfig(LOG4JL_DEFAULT_STATUS_LEVEL)
 
 "Returns the logging level"
+level(lc::Nullable{LoggerConfig})   = isnull(lc) ? LOG4JL_DEFAULT_STATUS_LEVEL : level(get(lc))
 level(lc::LoggerConfig) = get(lc.level, level(lc.parent))
 
 "Returns the value of the additive flag"
 isadditive(lc::LoggerConfig) = lc.additive
 
 "Logs an event"
-log(lc::LoggerConfig, evnt::Event) = map(apnd_ref->apnd_ref(evnt), values(lc.appenders))
-log(lc::LoggerConfig, logger, fqmn, marker, level, msg) =
+function log(lc::LoggerConfig, evnt::Event)
+    println(evnt)
+    map(ref->log(ref, evnt), values(lc.appenders))
+    lc.additive && !isnull(lc.parent) && log(get(lc.parent), evnt)
+end
+function log(lc::LoggerConfig, logger, fqmn, level, marker, msg)
     log(lc, call(LOG4JL_LOG_EVENT, logger, fqmn, marker, level, msg)) #TODO: properties
+end
 
-show(io::IO, lc::LoggerConfig) = print(io, "LoggerConfig(", isempty(lc.name) ? "root" : lc.name , ")")
+show(io::IO, lc::LoggerConfig) = print(io, "LoggerConfig(", isempty(lc.name) ? "root" : lc.name, ":", level(lc) , ")")
+
+"Check if message could be filtered based on its parametrs"
+function isenabled(lc::LoggerConfig, lvl, marker, msg, params...)
+    level(lc) > lvl && return false
+    #TODO: add filters by marker and message content
+    return true
+end
 
 
 "Null configuration"
@@ -45,7 +58,7 @@ type NullConfiguration <: Configuration
 end
 appender(cfg::NullConfiguration, name::AbstractString) = nothing
 appenders(cfg::NullConfiguration) = APPENDERS()
-logger(cfg::NullConfiguration, name::AbstractString) = nothing
+logger(cfg::NullConfiguration, name::AbstractString) = root
 loggers(cfg::NullConfiguration) = LOGCONFIGS()
 
 
@@ -73,5 +86,19 @@ type DefaultConfiguration <: Configuration
 end
 appender(cfg::DefaultConfiguration, name::AbstractString) = get(cfg.appenders, name, nothing)
 appenders(cfg::DefaultConfiguration) = cfg.appenders
-logger(cfg::DefaultConfiguration, name::AbstractString) = get(cfg.loggers, name, nothing)
+logger(cfg::DefaultConfiguration, name::AbstractString) = logger(cfg.loggers, name, cfg.root)
 loggers(cfg::DefaultConfiguration) = cfg.loggers
+
+"""Locates the appropriate `LoggerConfig` for a `Logger` name.
+
+ This will remove tokens from the name as necessary or return the root `LoggerConfig` if no other matches were found.
+"""
+function logger(loggers::LOGCONFIGS, name::AbstractString, root::LoggerConfig)
+    name in keys(loggers) && return loggers[name]
+    pname = name
+    while (pos = rsearch(pname, '.') ) != 0
+        pname = pname[1:pos-1]
+        pname in keys(loggers) && return loggers[pname]
+    end
+    return root
+end

@@ -16,8 +16,8 @@ module Messages
     "Message handles everything as string."
     type SimpleMessage <: Message
         message::AbstractString
+        SimpleMessage(msg::AbstractString, params...) = new(msg)
     end
-    SimpleMessage(msg::AbstractString, params...) = SimpleMessage(msg)
     SimpleMessage(msg::Any) = ObjectMessage(msg)
     formatted(msg::SimpleMessage)  = msg.message
     format(msg::SimpleMessage)     = msg.message
@@ -29,10 +29,11 @@ module Messages
     type ParameterizedMessage <: Message
         pattern::AbstractString
         params::Vector{Any}
+        ParameterizedMessage(ptrn::AbstractString, params...) = new(ptrn, [params...])
     end
-    ParameterizedMessage(ptrn::AbstractString, params...) = ParameterizedMessage(ptrn, [params...])
     ParameterizedMessage(msg::Any) = ObjectMessage(msg)
     function formatted(msg::ParameterizedMessage)
+        length(msg.params) == 0 && return msg.pattern
         offs = map(ss->ss.offset, matchall(r"({})+",msg.pattern))
         @assert length(offs) == length(msg.params) "Pattern does not match parameters"
         sstart = 1
@@ -54,8 +55,8 @@ module Messages
     type PrintfFormattedMessage <: Message
         pattern::AbstractString
         params::Vector{Any}
+        PrintfFormattedMessage(ptrn::AbstractString, params...) = new(ptrn, [params...])
     end
-    PrintfFormattedMessage(ptrn::AbstractString, params...) = PrintfFormattedMessage(ptrn, [params...])
     PrintfFormattedMessage(msg::Any) = ObjectMessage(msg)
     formatted(msg::PrintfFormattedMessage)  = @eval @sprintf($(msg.pattern), $(msg.params)...)
     format(msg::PrintfFormattedMessage)     = msg.pattern

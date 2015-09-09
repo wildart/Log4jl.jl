@@ -30,14 +30,14 @@ facts("Massages") do
     end
     context("can be created from parameterized string input") do
         msgPattern = "Test: {}, {}, {}"
-        msg = ParameterizedMessage(msgPattern, msgInput)
+        msg = ParameterizedMessage(msgPattern, msgInput...)
         @fact format(msg) --> msgPattern
         @fact parameters(msg) --> msgInput
         @fact formatted(msg) --> "Test: test, 10, 11.0"
     end
     context("can be created from 'printf' formatted input") do
         msgPattern = "Test: %s, %d, %.1f"
-        msg = PrintfFormattedMessage(msgPattern, msgInput)
+        msg = PrintfFormattedMessage(msgPattern, msgInput...)
         @fact format(msg) --> msgPattern
         @fact parameters(msg) --> msgInput
         @fact formatted(msg) --> "Test: test, 10, 11.0"

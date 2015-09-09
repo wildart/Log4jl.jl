@@ -7,18 +7,21 @@ end
 
 typealias LOGGERS Dict{AbstractString, Logger}
 
+"Returns a function that generates messages"
 msgen(lgr::Logger) = get(lgr.message, LOG4JL_DEFAULT_MESSAGE)
 
+"Logs a message"
 log(lgr::Logger, fqmn, level, marker, msg::MESSAGE) =
-    log(lgr.config, lgr.name, fqmn, level, marker, get(msg, SimpleMessage("")))
+    log(lgr.config, lgr.name, fqmn, level, marker, get(msg, Messages.SimpleMessage("")))
 
-log(lgr::Logger, fqmn, level, marker, msg) =
-    log(lgr, fqmn, level, marker, call(msgen(lgr), msg) |> MESSAGE)
+function log(lgr::Logger, fqmn, level, marker, msg, params...)
+    if isenabled(lgr.config, level, marker, msg, params...)
+        log(lgr, fqmn, level, marker, call(msgen(lgr), msg, params...) |> MESSAGE)
+    end
+end
 
-
-
-function show(io::IO, logger::Logger)
-    print(io, "(", logger.name, ")")
+function show(io::IO, lgr::Logger)
+    print(io, lgr.name, ":", level(lgr.config))
 end
 
 

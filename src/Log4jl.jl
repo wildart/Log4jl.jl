@@ -136,6 +136,16 @@ macro configure(body...)
 
 end
 
+Base.trace(l::Logger, marker::Symbol, msg::AbstractString, params...) = log(l, string(current_module()), Level.TRACE, MARKER(marker), msg, params...)
+Base.trace(l::Logger, marker::Symbol, msg) = log(l, string(current_module()), Level.TRACE, MARKER(marker), msg)
+Base.trace(l::Logger, msg::AbstractString, params...) = log(l, string(current_module()), Level.TRACE, MARKER(), msg, params...)
+Base.trace(l::Logger, msg) = log(l, string(current_module()), Level.TRACE, MARKER(), msg)
+
+Base.error(l::Logger, marker::Symbol, msg::AbstractString, params...) = log(l, string(current_module()), Level.ERROR, MARKER(marker), msg, params...)
+Base.error(l::Logger, marker::Symbol, msg) = log(l, string(current_module()), Level.ERROR, MARKER(marker), msg)
+Base.error(l::Logger, msg::AbstractString, params...) = log(l, string(current_module()), Level.ERROR, MARKER(), msg, params...)
+Base.error(l::Logger, msg) = log(l, string(current_module()), Level.ERROR, MARKER(), msg)
+
 function __init__()
     # Default line separator
     global const LOG4JL_LINE_SEPARATOR = "LOG4JL_LINE_SEPARATOR" in keys(ENV) ?

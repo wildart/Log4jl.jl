@@ -17,11 +17,9 @@ function logger(ctx::LoggerContext, name::AbstractString, msg::FACTORY=FACTORY()
     name in ctx && return ctx.loggers[name]
 
     # otherwise create new logger and return it
-    logcnf = logger(config, name)
-    logcnf = logcnf !== nothing ? logcnf : TODO
-    logger = Logger(name, msgfact, logcnf)
-    ctx.loggers[name] = logger
-    return logger
+    lgr = Logger(name, msg, logger(ctx.config, name))
+    ctx.loggers[name] = lgr
+    return lgr
 end
 
 "Returns all loggers."
