@@ -7,6 +7,8 @@ export Level,
            Configuration, logger, loggers, appender, appenders,
            Logger, level
 
+import Base: append!, serialize, show, in, delete!
+
 # Imports
 include("utils.jl")
 include("types.jl")
@@ -23,20 +25,31 @@ global LOG4JL_LINE_SEPARATOR
 global LOG4JL_DEFAULT_STATUS_LEVEL
 global LOG4JL_LOG_EVENT
 global LOG4JL_CONTEXT_SELECTOR
+const LOG4JL_DEFAULT_MESSAGE = Messages.ParameterizedMessage
 const LOG4JL_CONFIG_DEFAULT_PREFIX = "log4jl"
 const LOG4JL_CONFIG_EXTS = Dict(:YAML => [".yaml", ".yml"], :JSON=>[".json", ".jsn"], :LightXML=>[".xml"])
 const LOG4JL_CONFIG_PARSER_CALL = "parse_<type>_config"
+const ROOT_LOGGER_NAME = NAME()
+
 
 # Functions
-function getLogger(name::AbstractString="",
+"Returns a `Logger` with the specified name for  the fully qualified module name."
+function getLogger(name::NAME = NAME(""),
                                 fqmn::AbstractString=string(current_module()),
                                 msg::FACTORY=FACTORY()
                                )
     ctx = context(LOG4JL_CONTEXT_SELECTOR, fqmn)
-    return ctx
-    #return logger(name, msg)
+    logname = isnull(name) ? "" : isempty(get(name)) ? fqmn : get(name)
+    return logger(ctx, logname, msg)
 end
-getRootLogger() = getLogger()
+function getLogger(name::AbstractString = "",
+                                fqmn::AbstractString=string(current_module()),
+                                msg::FACTORY=FACTORY() )
+    return getLogger(NAME(name), fqmn, msg)
+end
+
+"Returns the root logger."
+getRootLogger() = getLogger(ROOT_LOGGER_NAME)
 
 """Log4jl configuration
 
@@ -116,6 +129,10 @@ macro configure(body...)
     # logger context is initialize  and configured
     ctx = context(LOG4JL_CONTEXT_SELECTOR, string(cm))
     config!(ctx, config)
+
+    # create logger
+
+    # create logger methods
 
 end
 

@@ -1,5 +1,3 @@
-import Base: in, delete!
-
 """
 The anchor for the logging system. It maintains a list of all the loggers
 requested by applications and a reference to the configuration.
@@ -13,14 +11,15 @@ type LoggerContext
 end
 LoggerContext(name::AbstractString) = LoggerContext(name, LOGGERS(), DefaultConfiguration(), "")
 
-
 "Returns a logger from a logger context"
 function logger(ctx::LoggerContext, name::AbstractString, msg::FACTORY=FACTORY())
     # return logger in exists
     name in ctx && return ctx.loggers[name]
 
     # otherwise create new logger and return it
-    logger = Logger(name, msgfact)
+    logcnf = logger(config, name)
+    logcnf = logcnf !== nothing ? logcnf : TODO
+    logger = Logger(name, msgfact, logcnf)
     ctx.loggers[name] = logger
     return logger
 end

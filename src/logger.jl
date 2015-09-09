@@ -1,20 +1,24 @@
+"Logger wrapper for `LoggerConfig`"
 type Logger
-    name::String
-    level::Level.EventLevel
-    appenders::Vector{Appender}
-
-    Logger(
-        name::String=string(current_module()),
-        level::Level.EventLevel=Level.DEBUG,
-        appenders = [Appenders.Console(name)]
-    ) = new(name, level, appenders)
-
+    name::AbstractString
+    message::FACTORY
+    config::LoggerConfig
 end
 
 typealias LOGGERS Dict{AbstractString, Logger}
 
-function Base.show(io::IO, logger::Logger)
-    print(io, "Logger(", join([logger.name, ", level=", string(logger.level)], ""), ")")
+msgen(lgr::Logger) = get(lgr.message, LOG4JL_DEFAULT_MESSAGE)
+
+log(lgr::Logger, fqmn, level, marker, msg::MESSAGE) =
+    log(lgr.config, lgr.name, fqmn, level, marker, get(msg, SimpleMessage("")))
+
+log(lgr::Logger, fqmn, level, marker, msg) =
+    log(lgr, fqmn, level, marker, call(msgen(lgr), msg) |> MESSAGE)
+
+
+
+function show(io::IO, logger::Logger)
+    print(io, "(", logger.name, ")")
 end
 
 

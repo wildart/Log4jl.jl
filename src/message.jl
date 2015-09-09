@@ -3,16 +3,6 @@ module Messages
     using Log4jl: Message
     import Log4jl: format, formatted, parameters
 
-    "Message handles everything as string."
-    type SimpleMessage <: Message
-        message::AbstractString
-    end
-    formatted(msg::SimpleMessage)  = msg.message
-    format(msg::SimpleMessage)     = msg.message
-    parameters(msg::SimpleMessage) = nothing
-    Base.show(io::IO, msg::SimpleMessage) = print(io, "SimpleMessage[message=",msg.message,']')
-
-
     "Message with raw objects"
     type ObjectMessage <: Message
         message::Any
@@ -20,7 +10,19 @@ module Messages
     formatted(msg::ObjectMessage)  = string(msg.message)
     format(msg::ObjectMessage)     = formatted(msg)
     parameters(msg::ObjectMessage) = Any[msg.message]
-    Base.show(io::IO, msg::ObjectMessage) = print(io, "ObjectMessage[message=",msg.message,']')
+    show(io::IO, msg::ObjectMessage) = print(io, "ObjectMessage[message=",msg.message,']')
+
+
+    "Message handles everything as string."
+    type SimpleMessage <: Message
+        message::AbstractString
+    end
+    SimpleMessage(msg::AbstractString, params...) = SimpleMessage(msg)
+    SimpleMessage(msg::Any) = ObjectMessage(msg)
+    formatted(msg::SimpleMessage)  = msg.message
+    format(msg::SimpleMessage)     = msg.message
+    parameters(msg::SimpleMessage) = nothing
+    show(io::IO, msg::SimpleMessage) = print(io, "SimpleMessage[message=",msg.message,']')
 
 
     "Message pattern contains placeholders indicated by '{}'"
@@ -29,6 +31,7 @@ module Messages
         params::Vector{Any}
     end
     ParameterizedMessage(ptrn::AbstractString, params...) = ParameterizedMessage(ptrn, [params...])
+    ParameterizedMessage(msg::Any) = ObjectMessage(msg)
     function formatted(msg::ParameterizedMessage)
         offs = map(ss->ss.offset, matchall(r"({})+",msg.pattern))
         @assert length(offs) == length(msg.params) "Pattern does not match parameters"
@@ -43,7 +46,7 @@ module Messages
     end
     format(msg::ParameterizedMessage)     = msg.pattern
     parameters(msg::ParameterizedMessage) = msg.params
-    Base.show(io::IO, msg::ParameterizedMessage) =
+    show(io::IO, msg::ParameterizedMessage) =
         print(io, "ParameterizedMessage[pattern='",msg.pattern,"', args=",msg.params,']')
 
 
@@ -53,27 +56,17 @@ module Messages
         params::Vector{Any}
     end
     PrintfFormattedMessage(ptrn::AbstractString, params...) = PrintfFormattedMessage(ptrn, [params...])
+    PrintfFormattedMessage(msg::Any) = ObjectMessage(msg)
     formatted(msg::PrintfFormattedMessage)  = @eval @sprintf($(msg.pattern), $(msg.params)...)
     format(msg::PrintfFormattedMessage)     = msg.pattern
     parameters(msg::PrintfFormattedMessage) = msg.params
-    Base.show(io::IO, msg::PrintfFormattedMessage) =
+    show(io::IO, msg::PrintfFormattedMessage) =
         print(io, "PrintfFormattedMessage[pattern='",msg.pattern,"', args=",msg.params,']')
 
 
     #TODO: MapMessage: XML, JSON, Dict
     #TODO: StructuredDataMessage: RFC 5424
 
-    # Message generating functions
-    simplemessage(msg::AbstractString, params...) = SimpleMessage(msg)
-    simplemessage(msg::Any) = ObjectMessage(msg)
-
-    parameterizedmessage(msg::AbstractString, params...) = ParameterizedMessage(msg, params...)
-    parameterizedmessage(msg::Any) = simplemessage(msg)
-
-    printfformattermessage(msg::AbstractString, params...) = PrintfFormattedMessage(msg, params...)
-    printfformattermessage(msg::Any) = simplemessage(msg)
-
-
-    export simplemessage, parameterizedmessage, printfformattermessage
+    export ObjectMessage, SimpleMessage, ParameterizedMessage, PrintfFormattedMessage
 
 end

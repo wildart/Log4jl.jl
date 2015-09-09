@@ -1,25 +1,38 @@
 "Logger configuration"
 type LoggerConfig
     name::AbstractString
-    level::Level.EventLevel
+    level::LEVEL
     additive::Bool
-    parent::Nullable{LoggerConfig}
     appenders::Dict{AbstractString, AppenderRef}
+    parent::Nullable{LoggerConfig}
     event::FACTORY
-    #properties::Dict{Property, Bool}
+    #TODO: properties::Dict{Property, Bool}
+    #TODO: filter::Filter
 end
 
 typealias LOGCONFIGS Dict{AbstractString, LoggerConfig}
 typealias LOGCONFIG   Nullable{LoggerConfig}
 
-function LoggerConfig(name::AbstractString, level::Level.EventLevel, additive::Bool)
-    LoggerConfig(name, level, additive,
-        LOGCONFIG(), APPENDERS(), FACTORY(Log4jlEvent))
+function LoggerConfig(name::AbstractString, level::Level.EventLevel,
+                                    additive::Bool = true, appenders::APPENDERS=APPENDERS())
+    return LoggerConfig(name, LEVEL(level), additive, appenders,
+                                      LOGCONFIG(), FACTORY(Log4jlEvent))
 end
-LoggerConfig(level::Level.EventLevel) = LoggerConfig("", level, true)
+LoggerConfig(level::Level.EventLevel) = LoggerConfig("", level)
 LoggerConfig() = LoggerConfig(Level.ERROR)
 
-#call(Log4jl.LOG4JL_LOG_EVENT, UInt64(0))
+"Returns the logging level"
+level(lc::LoggerConfig) = get(lc.level, level(lc.parent))
+
+"Returns the value of the additive flag"
+isadditive(lc::LoggerConfig) = lc.additive
+
+"Logs an event"
+log(lc::LoggerConfig, evnt::Event) = map(apnd_ref->apnd_ref(evnt), values(lc.appenders))
+log(lc::LoggerConfig, logger, fqmn, marker, level, msg) =
+    log(lc, call(LOG4JL_LOG_EVENT, logger, fqmn, marker, level, msg)) #TODO: properties
+
+show(io::IO, lc::LoggerConfig) = print(io, "LoggerConfig(", isempty(lc.name) ? "root" : lc.name , ")")
 
 
 "Null configuration"

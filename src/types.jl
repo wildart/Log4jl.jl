@@ -1,8 +1,5 @@
-import Base: append!, serialize, show
-
 module Level
     @enum EventLevel ALL=0 TRACE=100 DEBUG=200 INFO=300 WARN=400 ERROR=500 FATAL=600 OFF=1000
-    #@addlevel(lvl, val) # add custom level
 end
 
 
@@ -154,6 +151,7 @@ typealias MARKER Nullable{Symbol}
 typealias MESSAGE Nullable{Message}
 typealias LEVEL Nullable{Level.EventLevel}
 typealias FACTORY Nullable{DataType}
+typealias NAME Nullable{AbstractString}
 typealias CONFIGURATION Nullable{Configuration}
 typealias PROPERTIES Dict{AbstractString, AbstractString}
 typealias APPENDERS Dict{AbstractString, Appender}
