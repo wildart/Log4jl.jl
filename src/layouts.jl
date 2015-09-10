@@ -1,6 +1,12 @@
 module Layouts
 
-    import ..Log4jl: Layout, StringLayout, Event, Message, format, header, footer
+    import ..Log4jl: Layout, header, footer,
+                     StringLayout,
+                     Event, message, level, timestamp,
+                     Message, formatted,
+                     LOG4JL_LINE_SEPARATOR
+
+    import Base: serialize
 
     export name, layer
 

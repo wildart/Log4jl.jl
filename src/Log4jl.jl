@@ -9,6 +9,12 @@ export Level,
 
 import Base: append!, serialize, show, in, delete!
 
+# To be set parameters
+global LOG4JL_LINE_SEPARATOR
+global LOG4JL_DEFAULT_STATUS_LEVEL
+global LOG4JL_LOG_EVENT
+global LOG4JL_CONTEXT_SELECTOR
+
 # Imports
 include("utils.jl")
 include("types.jl")
@@ -21,10 +27,6 @@ include("logger.jl")
 include("context.jl")
 
 # Constants
-global LOG4JL_LINE_SEPARATOR
-global LOG4JL_DEFAULT_STATUS_LEVEL
-global LOG4JL_LOG_EVENT
-global LOG4JL_CONTEXT_SELECTOR
 const LOG4JL_DEFAULT_MESSAGE = Messages.ParameterizedMessage
 const LOG4JL_CONFIG_DEFAULT_PREFIX = "log4jl"
 const LOG4JL_CONFIG_EXTS = Dict(:YAML => [".yaml", ".yml"], :JSON=>[".json", ".jsn"], :LightXML=>[".xml"])

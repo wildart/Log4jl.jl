@@ -11,12 +11,12 @@ typealias LOGGERS Dict{AbstractString, Logger}
 msgen(lgr::Logger) = get(lgr.message, LOG4JL_DEFAULT_MESSAGE)
 
 "Logs a message"
-log(lgr::Logger, fqmn, level, marker, msg::MESSAGE) =
-    log(lgr.config, lgr.name, fqmn, level, marker, get(msg, Messages.SimpleMessage("")))
+log(lgr::Logger, fqmn, level, marker, msg::Message) =
+    log(lgr.config, lgr.name, fqmn, level, marker, msg)
 
 function log(lgr::Logger, fqmn, level, marker, msg, params...)
     if isenabled(lgr.config, level, marker, msg, params...)
-        log(lgr, fqmn, level, marker, call(msgen(lgr), msg, params...) |> MESSAGE)
+        log(lgr, fqmn, level, marker, call(msgen(lgr), msg, params...))
     end
 end
 

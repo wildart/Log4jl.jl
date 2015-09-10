@@ -53,6 +53,7 @@ timestamp(evnt::Event) = isdefined(evnt, :timestamp) ? evnt.timestamp : throw(As
 Lays out a `Event` in different formats.
 """
 abstract Layout
+typealias LAYOUT Nullable{Layout}
 
 """ Returns the header as byte array for the layout format. """
 header(lyt::Layout) = throw(AssertionError("Function 'header' is not implemented for type $(typeof(lyt))"))
@@ -60,11 +61,14 @@ header(lyt::Layout) = throw(AssertionError("Function 'header' is not implemented
 """ Returns the footer as byte array for the layout format. """
 footer(lyt::Layout) = throw(AssertionError("Function 'footer' is not implemented for type $(typeof(lyt))"))
 
-""" Formats the event suitable for display into byte array """
-format(lyt::Layout, evnt::Event) = throw(AssertionError("Function 'format' is not implemented for type $(typeof(lyt))"))
+"""
+    serialize(lyt::Layout, evnt::Event) -> Vector{UInt8}
 
-""" Formats the event as an Object that can be serialized. """
+Formats the even suitable for display into byte array.
+"""
 serialize(lyt::Layout, evnt::Event) = throw(AssertionError("Function 'serialize' is not implemented for type $(typeof(lyt))"))
+serialize(lyt::LAYOUT, evnt::Event) = !isnull(lyt) ? serialize(get(lyt), evnt) : convert(Vector{UInt8}, "No layout present!")
+
 
 """ Returns the content type output by this layout """
 contenttype(lyt::Layout) = throw(
@@ -139,12 +143,8 @@ loggers(cfg::Configuration) = throw(AssertionError("Function 'loggers' is not im
 appenders(cfg::Configuration) = throw(AssertionError("Function 'appenders' is not implemented for type $(typeof(cfg))"))
 
 
-"An `Appender` reference"
-type AppenderRef
-    ref::AbstractString
-    level::Level.EventLevel
-    #TODO: filter::Filter
-end
+""" Abstract event filtering """
+abstract Filter
 
 
 # Aliases
@@ -153,6 +153,7 @@ typealias MESSAGE Nullable{Message}
 typealias LEVEL Nullable{Level.EventLevel}
 typealias FACTORY Nullable{DataType}
 typealias NAME Nullable{AbstractString}
+typealias FILTER Nullable{Filter}
 typealias CONFIGURATION Nullable{Configuration}
 typealias PROPERTIES Dict{AbstractString, AbstractString}
 typealias APPENDERS Dict{AbstractString, Appender}

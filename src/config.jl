@@ -3,7 +3,7 @@ type LoggerConfig
     name::AbstractString
     level::LEVEL
     additive::Bool
-    appenders::Dict{AbstractString, AppenderRef}
+    appenders::Dict{AbstractString, Appenders.Reference}
     parent::Nullable{LoggerConfig}
     event::FACTORY
     #TODO: properties::Dict{Property, Bool}
@@ -30,8 +30,7 @@ isadditive(lc::LoggerConfig) = lc.additive
 
 "Logs an event"
 function log(lc::LoggerConfig, evnt::Event)
-    println(evnt)
-    map(ref->log(ref, evnt), values(lc.appenders))
+    map(ref->append!(ref, evnt), values(lc.appenders))
     lc.additive && !isnull(lc.parent) && log(get(lc.parent), evnt)
 end
 function log(lc::LoggerConfig, logger, fqmn, level, marker, msg)
@@ -40,11 +39,17 @@ end
 
 show(io::IO, lc::LoggerConfig) = print(io, "LoggerConfig(", isempty(lc.name) ? "root" : lc.name, ":", level(lc) , ")")
 
-"Check if message could be filtered based on its parametrs"
+"Check if message could be filtered based on its parameters"
 function isenabled(lc::LoggerConfig, lvl, marker, msg, params...)
     level(lc) > lvl && return false
     #TODO: add filters by marker and message content
     return true
+end
+
+"Adds an appender reference to configuration"
+function reference(lc::LoggerConfig, apndr::Appender, lvl::Level.EventLevel=Level.ALL, filter::FILTER=FILTER())
+    apn = name(apndr)
+    lc.appenders[apn] = Appenders.Reference(apndr, lvl, filter)
 end
 
 
@@ -81,7 +86,12 @@ type DefaultConfiguration <: Configuration
                 :io        => STDOUT
             ))
         )
-        return new("Default", "", properties, appenders, LOGCONFIGS(), LoggerConfig(LOG4JL_DEFAULT_STATUS_LEVEL))
+
+        # Reference appender to root configuration
+        root =  LoggerConfig(LOG4JL_DEFAULT_STATUS_LEVEL)
+        reference(root, appenders["STDOUT"])
+
+        return new("Default", "", properties, appenders, LOGCONFIGS(), root)
     end
 end
 appender(cfg::DefaultConfiguration, name::AbstractString) = get(cfg.appenders, name, nothing)

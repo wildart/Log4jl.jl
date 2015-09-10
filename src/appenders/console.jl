@@ -1,17 +1,21 @@
 """Console appender
 """
 immutable Console <: Appender
-    name::String
-    layout::Nullable{Layout}
+    name::AbstractString
+    layout::LAYOUT
     io::IO
 end
-Console() = Console("", Nullable{Layout}(), STDERR)
-Console(name::String) = Console(name, Nullable{Layout}(), STDERR)
+Console() = Console("", LAYOUT(), STDERR)
+Console(name::String) = Console(name, LAYOUT(), STDERR)
 function Console(config::Dict{Symbol,Any})
     io = get(config, :io, STDERR)
     nm = get(config, :name, "")
-    lyt = get(config, :layout, Nullable{Layout}())
-    Console(nm, lyt, io)
+    lyt= get(config, :layout, nothing)
+    Console(nm, LAYOUT(lyt), io)
 end
 name(apnd::Console) = isempty(apnd.name) ? string(typeof(apnd)) : apnd.name
-layout(apnd::Console) = isnull(apnd.layout) ? string(typeof(apnd)) : get(apnd.layout)
+layout(apnd::Console) = apnd.layout
+
+function append!(apnd::Console, evnt::Event)
+    !isnull(apnd.layout) && write(apnd.io, serialize(apnd.layout, evnt))
+end
