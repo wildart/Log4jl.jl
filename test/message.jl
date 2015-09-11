@@ -2,6 +2,7 @@ module TextMessages
 
 using Log4jl
 using Log4jl.Messages
+import Log4jl: format, formatted, parameters
 using FactCheck
 
 type IncompleteMessage <: Log4jl.Message
