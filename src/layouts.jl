@@ -2,7 +2,7 @@ module Layouts
 
     import ..Log4jl: Layout, header, footer,
                      StringLayout,
-                     Event, message, level, timestamp,
+                     Event, message, level, timestamp, fqmn, logger, marker,
                      Message, formatted,
                      LOG4JL_LINE_SEPARATOR
 

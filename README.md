@@ -4,6 +4,27 @@
 
 **Log4jl** is a comprehensive and flexible logging framework for Julia programs.
 
+## Usage
+
+A configuration macro `@Log4jl.configure` must be called after importing `Log4jl` module.
+Macro call initializes and configures the logging framework. Next, you can create loggers by calling `Log4jl.getLogger` function, and use any of logging functions or macros to perform logging operations.
+
+
+```julia
+using Log4jl
+@Log4jl.configure
+const logger = Log4jl.getLogger()
+
+error(logger, "Error in my code")
+
+# or
+
+@error "Error in my code"
+```
+
+See usage in [example/simple.jl](example/simple.jl).
+
+**Note:** If you use logging macros, make sure that constant `logger` exists in your current module.
 
 ## Dev Notes
 

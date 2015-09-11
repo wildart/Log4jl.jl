@@ -80,10 +80,8 @@ type DefaultConfiguration <: Configuration
     function DefaultConfiguration()
         properties = PROPERTIES()
         appenders = APPENDERS(
-            "STDOUT" => Appenders.Console(Dict(
-                :name  => "STDOUT",
-                :layout => Layouts.BasicLayout(), #TODO: PatternLayout
-                :io        => STDOUT
+            "STDOUT" => Appenders.ColorConsole(Dict(
+                :layout => Layouts.BasicLayout() #TODO: PatternLayout
             ))
         )
 

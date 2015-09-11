@@ -1,13 +1,16 @@
 module Log4jl
 
 export Level,
-           Message, format, formatted, parameters,
-           Layout, format, header, footer,
-           Appender, name, layout, append!,
-           Configuration, logger, loggers, appender, appenders,
-           Logger, level
+       Message,
+       Layout,
+       Appender,
+       Configuration,
+       Logger,
+       trace, debug, info, warn, error, fatal,
+       @trace, @debug, @info, @warn, @error, @fatal
 
-import Base: append!, serialize, show, in, delete!
+import Base: append!, serialize, show, in, delete!, string,
+             trace, info, warn, error
 
 # To be set parameters
 global LOG4JL_LINE_SEPARATOR
@@ -65,8 +68,6 @@ If programmatic configuration is specified then it will be evaluated into a `Con
 macro configure(body...)
     cm = current_module()
     cm_path = moduledir(cm)
-    println("Log4jl-configure:", cm)
-    println("Log4jl-configure:", cm_path)
 
     local config
     local config_file = ""
@@ -126,49 +127,63 @@ macro configure(body...)
             DefaultConfiguration()
         end
     end
-    println(config)
 
     # logger context is initialize  and configured
     ctx = context(LOG4JL_CONTEXT_SELECTOR, string(cm))
     config!(ctx, config)
 
-    # create logger
-
     # create logger methods
+    for (fn,lvl) in ((:trace, Level.TRACE),
+                     (:debug, Level.DEBUG),
+                     (:info,  Level.INFO),
+                     (:warn,  Level.WARN),
+                     (:error, Level.ERROR),
+                     (:fatal, Level.FATAL))
 
+        @eval $fn(l::Logger, marker::Symbol, msg::AbstractString, params...) = log(l, string(current_module()), $lvl, MARKER(marker), msg, params...)
+        @eval $fn(l::Logger, marker::Symbol, msg) = log(l, string(current_module()), $lvl, MARKER(marker), msg)
+        @eval $fn(l::Logger, msg::AbstractString, params...) = log(l, string(current_module()), $lvl, MARKER(), msg, params...)
+        @eval $fn(l::Logger, msg) = log(l, string(current_module()), $lvl, MARKER(), msg)
+
+    end
+
+    # create logger macros
+    for fn in [:trace, :debug, :info, :warn, :error, :fatal]
+        @eval macro $fn(msg...)
+            # get current module `logger` constant
+            mod = current_module()
+            fcall = Expr(:call, esc($fn), esc(:logger), msg...)
+            quote
+                if isdefined($mod, :logger) && isconst($mod, :logger)
+                    $fcall;
+                end
+            end
+        end
+    end
 end
-
-Base.trace(l::Logger, marker::Symbol, msg::AbstractString, params...) = log(l, string(current_module()), Level.TRACE, MARKER(marker), msg, params...)
-Base.trace(l::Logger, marker::Symbol, msg) = log(l, string(current_module()), Level.TRACE, MARKER(marker), msg)
-Base.trace(l::Logger, msg::AbstractString, params...) = log(l, string(current_module()), Level.TRACE, MARKER(), msg, params...)
-Base.trace(l::Logger, msg) = log(l, string(current_module()), Level.TRACE, MARKER(), msg)
-
-Base.error(l::Logger, marker::Symbol, msg::AbstractString, params...) = log(l, string(current_module()), Level.ERROR, MARKER(marker), msg, params...)
-Base.error(l::Logger, marker::Symbol, msg) = log(l, string(current_module()), Level.ERROR, MARKER(marker), msg)
-Base.error(l::Logger, msg::AbstractString, params...) = log(l, string(current_module()), Level.ERROR, MARKER(), msg, params...)
-Base.error(l::Logger, msg) = log(l, string(current_module()), Level.ERROR, MARKER(), msg)
 
 function __init__()
     # Default line separator
     global const LOG4JL_LINE_SEPARATOR = "LOG4JL_LINE_SEPARATOR" in keys(ENV) ?
-                                                                       convert(Vector{UInt8}, ENV["LOG4JL_LINE_SEPARATOR"]) :
-                                                                       @windows? [0x0d, 0x0a] : [0x0a]
+                                         convert(Vector{UInt8}, ENV["LOG4JL_LINE_SEPARATOR"]) :
+                                         @windows? [0x0d, 0x0a] : [0x0a]
     eval(Layouts, parse("import ..Log4jl.LOG4JL_LINE_SEPARATOR"))
 
     # Default logger context selector
     global const LOG4JL_DEFAULT_STATUS_LEVEL = "LOG4JL_DEFAULT_STATUS_LEVEL" in keys(ENV) ?
-                                                                                  eval(parse(ENV["LOG4JL_DEFAULT_STATUS_LEVEL"])) :
-                                                                                  Level.ERROR
+                                               eval(parse("Level.$(ENV["LOG4JL_DEFAULT_STATUS_LEVEL"])")) :
+                                               Level.ERROR
 
     # Default logger context selector
     global const LOG4JL_LOG_EVENT = "LOG4JL_LOG_EVENT" in keys(ENV) ?
-                                                             eval(parse(ENV["LOG4JL_LOG_EVENT"])) :
-                                                             Log4jlEvent
+                                    eval(parse(ENV["LOG4JL_LOG_EVENT"])) :
+                                    Log4jlEvent
 
     # Default logger context selector
     global const LOG4JL_CONTEXT_SELECTOR = "LOG4JL_CONTEXT_SELECTOR" in keys(ENV) ?
-                                                                            eval(Expr(:call, parse(ENV["LOG4JL_CONTEXT_SELECTOR"]))) :
-                                                                            ModuleContextSelector()
+                                           eval(Expr(:call, parse(ENV["LOG4JL_CONTEXT_SELECTOR"]))) :
+                                           ModuleContextSelector()
 end
+
 
 end

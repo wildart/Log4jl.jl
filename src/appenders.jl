@@ -1,11 +1,12 @@
 module Appenders
 
     import ..Log4jl: Appender, layout, name,
-                             Event, Message, Level,
-                             Filter, FILTER,
-                             Layout, LAYOUT, header, footer, format
+                     Event, level,
+                     Message, Level,
+                     Filter, FILTER,
+                     Layout, LAYOUT, header, footer, format
 
-    import Base: empty!, write, append!
+    import Base: empty!, write, append!, string
 
     export name, layout, append!
 
@@ -28,11 +29,11 @@ module Appenders
 
         # append event
         append!(ref.appender, evnt)
-
     end
 
     include("appenders/list.jl")
     include("appenders/console.jl")
+    include("appenders/color_console.jl")
     #include("appenders/file.jl")
     #include("appenders/socket.jl")
 

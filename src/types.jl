@@ -2,7 +2,7 @@ module Level
     @enum EventLevel ALL=0 TRACE=100 DEBUG=200 INFO=300 WARN=400 ERROR=500 FATAL=600 OFF=1000
     Base.show(io::IO, level::EventLevel) = print(io, string(level))
 end
-
+typealias LEVEL Nullable{Level.EventLevel}
 
 """ Abstract log message
 
@@ -12,6 +12,7 @@ when necessary without requiring complicated formatters and as a way to manipula
 the message based on information available at runtime such as the locale of the system.
 """
 abstract Message
+typealias MESSAGE Nullable{Message}
 
 """ Returns message format as string. """
 format(msg::Message)     = throw(AssertionError("Function 'format' is not implemented"))
@@ -83,6 +84,14 @@ contenttype(lyt::Layout) = throw(
 abstract StringLayout <: Layout
 contenttype(lyt::StringLayout) = "text/plain"
 
+"""
+    string(lyt::Layout, evnt::Event) -> AbstractString
+
+Formats the even suitable for display into string.
+"""
+string(lyt::StringLayout, evnt::Event) = throw(AssertionError("Function 'string' is not implemented for type $(typeof(lyt))"))
+string(lyt::LAYOUT, evnt::Event) = !isnull(lyt) ? string(get(lyt), evnt) : "No layout present!"
+
 
 """ Abstract appender
 
@@ -95,6 +104,8 @@ In addition to basic fields, every appender should have a method `append!`:
 * append!(apnd::Appender, evnt::Event) - appends event
 """
 abstract Appender
+typealias APPENDER Nullable{Appender}
+typealias APPENDERS Dict{AbstractString, Appender}
 
 """ Returns name of the appender """
 name(apnd::Appender) = isdefined(apnd, :name) ? apnd.name : throw(AssertionError("Define field 'name' in type $(typeof(apnd))"))
@@ -121,6 +132,7 @@ Any configuration must implement following set of methods:
 - appenders(Configuration) -> Dict{AbstractString, Appender}
 """
 abstract Configuration
+typealias CONFIGURATION Nullable{Configuration}
 
 show(io::IO, cfg::Configuration) = print(io, "Configuration(", cfg.name, ")")
 
@@ -145,15 +157,10 @@ appenders(cfg::Configuration) = throw(AssertionError("Function 'appenders' is no
 
 """ Abstract event filtering """
 abstract Filter
-
+typealias FILTER Nullable{Filter}
 
 # Aliases
 typealias MARKER Nullable{Symbol}
-typealias MESSAGE Nullable{Message}
-typealias LEVEL Nullable{Level.EventLevel}
 typealias FACTORY Nullable{DataType}
 typealias NAME Nullable{AbstractString}
-typealias FILTER Nullable{Filter}
-typealias CONFIGURATION Nullable{Configuration}
 typealias PROPERTIES Dict{AbstractString, AbstractString}
-typealias APPENDERS Dict{AbstractString, Appender}
