@@ -4,13 +4,12 @@ module Layouts
                      StringLayout,
                      Event, message, level, timestamp, fqmn, logger, marker,
                      Message, formatted,
-                     LOG4JL_LINE_SEPARATOR
+                     LOG4JL_LINE_SEPARATOR, getbacktrace
 
-    import Base: serialize
-
-    export name, layer
+    import Base: serialize, string
 
     include("layouts/basic.jl")
-
+    include("layouts/pattern.jl")
+    include("layouts/serialized.jl")
 
 end

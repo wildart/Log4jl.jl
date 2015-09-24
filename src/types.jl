@@ -31,22 +31,22 @@ Provides contextual information about a logged message.
 abstract Event
 
 """ Returns the fully qualified module name of the caller of the logging API """
-fqmn(evnt::Event) = isdefined(evnt, :fqmn) ? evnt.fqmn : throw(AssertionError("Define field 'fqmn' in type $(typeof(evnt))"))
+fqmn(evnt::Event) = isdefined(evnt, :fqmn) ? evnt.fqmn : throw(AssertionError("Define field or method 'fqmn' in type $(typeof(evnt))"))
 
 """ Gets the level. """
-level(evnt::Event) = isdefined(evnt, :level) ? evnt.level : throw(AssertionError("Define field 'level' in type $(typeof(evnt))"))
+level(evnt::Event) = isdefined(evnt, :level) ? evnt.level : throw(AssertionError("Define field or method 'level' in type $(typeof(evnt))"))
 
 """ Gets the logger name. """
-logger(evnt::Event) = isdefined(evnt, :logger) ? evnt.logger : throw(AssertionError("Define field 'logger' in type $(typeof(evnt))"))
+logger(evnt::Event) = isdefined(evnt, :logger) ? evnt.logger : throw(AssertionError("Define field or method 'logger' in type $(typeof(evnt))"))
 
 """ Gets the Marker associated with the event. """
-marker(evnt::Event) = isdefined(evnt, :marker) ? evnt.marker : throw(AssertionError("Define field 'marker' in type $(typeof(evnt))"))
+marker(evnt::Event) = isdefined(evnt, :marker) ? evnt.marker : throw(AssertionError("Define field or method 'marker' in type $(typeof(evnt))"))
 
 """ Gets the message associated with the event. """
-message(evnt::Event) = isdefined(evnt, :message) ? evnt.message : throw(AssertionError("Define field 'message' in type $(typeof(evnt))"))
+message(evnt::Event) = isdefined(evnt, :message) ? evnt.message : throw(AssertionError("Define field or method 'message' in type $(typeof(evnt))"))
 
-""" Gets event time in nanoseconds. """
-timestamp(evnt::Event) = isdefined(evnt, :timestamp) ? evnt.timestamp : throw(AssertionError("Define field 'timestamp' in type $(typeof(evnt))"))
+""" Gets event timestamp. """
+timestamp(evnt::Event) = isdefined(evnt, :timestamp) ? evnt.timestamp : throw(AssertionError("Define field or method 'timestamp' in type $(typeof(evnt))"))
 
 
 """ Abstract layout
@@ -102,6 +102,9 @@ Any appender implementation must have two fields:
 
 In addition to basic fields, every appender should have a method `append!`:
 * append!(apnd::Appender, evnt::Event) - appends event
+
+*Note:* All derived types should have a constructor which accepts `Dict{Any,Any}` object as a parameter.
+Passed dictionary object should contain various initialization parameters. One of the parameters should have a key `:layout` with `Layout` object as its value.
 """
 abstract Appender
 typealias APPENDER Nullable{Appender}

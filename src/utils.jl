@@ -1,3 +1,25 @@
+type BackTraceElement
+    mod::Symbol
+    func::Symbol
+    file::Symbol
+    line::Int
+end
+BackTraceElement() = BackTraceElement(symbol(), symbol(), symbol(), -1)
+typealias BACKTRACE Nullable{BackTraceElement}
+
+function getbacktrace()
+    bt = backtrace()
+    btout = BackTraceElement[]
+    mod = current_module()
+    for b in bt
+        code = ccall(:jl_lookup_code_address, Any, (Ptr{Void}, Cint), b, true)
+        if !code[6]
+            push!(btout, BackTraceElement(symbol(mod),code[1],code[2],code[3]))
+        end
+    end
+    return btout
+end
+
 function moduledir(m::Module)
     mname = string(m)
     mpath = Base.find_in_path(mname)
@@ -54,4 +76,18 @@ function submodules(m::Module, mdls::Vector{Symbol}= Symbol[])
         end
     end
     return mdls
+end
+
+function evaltype(stype::AbstractString, smodule::AbstractString="")
+    stype = isempty(smodule) ? stype : "$(smodule).$(stype)"
+    try
+        eval(parse(stype))
+    catch
+        Void
+    end
+end
+
+function configlevel(conf::Dict)
+    return LEVEL(haskey(conf, "level") ?
+           evaltype((conf["level"] |> uppercase), "Level") : nothing)
 end

@@ -9,14 +9,21 @@ type BasicLayout <: StringLayout
     end
 end
 
+function BasicLayout(conf::Dict)
+    sdformat = get(conf, "dateFormat", "HH:MM:SS.sss")
+    return SerializedLayout(Dates.DateFormat(sdformat))
+end
+
+# Interface implementation
+
 header(lyt::BasicLayout) = UInt8[]
 
 footer(lyt::BasicLayout) = UInt8[]
 
-function Base.string(lyt::BasicLayout, evnt::Event)
+function string(lyt::BasicLayout, evnt::Event)
     output = Dates.format(timestamp(evnt) |> Dates.unix2datetime, lyt.dformat)
     output *= " - "
-    output *= string(get(level(evnt)))
+    output *= string(level(evnt))
     output *= " - "
     output *= fqmn(evnt)
     output *= " - "
@@ -24,7 +31,7 @@ function Base.string(lyt::BasicLayout, evnt::Event)
     output *= convert(ASCIIString, LOG4JL_LINE_SEPARATOR)
     return output
 end
-serialize(lyt::BasicLayout, evnt::Event) = convert(Vector{UInt8}, string(lyt, evnt))
+serialize(lyt::BasicLayout, evnt::Event) = string(lyt, evnt).data
 
 # function serialize(lyt::BasicLayout, evnt::Event)
 #     iob = IOBuffer()

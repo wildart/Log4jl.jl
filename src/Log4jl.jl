@@ -40,16 +40,15 @@ const ROOT_LOGGER_NAME = NAME()
 # Functions
 "Returns a `Logger` with the specified name for  the fully qualified module name."
 function getLogger(name::NAME = NAME(""),
-                                fqmn::AbstractString=string(current_module()),
-                                msg::FACTORY=FACTORY()
-                               )
+                   fqmn::AbstractString=string(current_module()),
+                   msg::FACTORY=FACTORY())
     ctx = context(LOG4JL_CONTEXT_SELECTOR, fqmn)
     logname = isnull(name) ? "" : isempty(get(name)) ? fqmn : get(name)
     return logger(ctx, logname, msg)
 end
 function getLogger(name::AbstractString = "",
-                                fqmn::AbstractString=string(current_module()),
-                                msg::FACTORY=FACTORY() )
+                   fqmn::AbstractString=string(current_module()),
+                   msg::FACTORY=FACTORY() )
     return getLogger(NAME(name), fqmn, msg)
 end
 
@@ -75,7 +74,8 @@ macro configure(body...)
 
     # parse macro parameters
     if length(body) > 0 && isa(body[1], Expr) &&  body[1].head == :block
-        config_eval = body
+        config_eval = body[1]
+        config_file = "PROG"
     else
         parser_type = :NONE
         if length(body) > 0 && isa(body[1], AbstractString)
@@ -127,6 +127,7 @@ macro configure(body...)
             DefaultConfiguration()
         end
     end
+    println(config)
 
     # logger context is initialize  and configured
     ctx = context(LOG4JL_CONTEXT_SELECTOR, string(cm))

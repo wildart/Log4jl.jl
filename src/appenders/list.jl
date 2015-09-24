@@ -15,8 +15,8 @@ immutable List <: Appender
     newLine::Bool
 
     List(name::AbstractString) = new(name, LAYOUT(), Event[], Message[], UInt8[], false, false)
-    function List(name::AbstractString, layout::Layout; raw=false, newLine=false)
-        apndr = new(name, LAYOUT(layout), Event[], Message[], UInt8[], raw, newLine)
+    function List(name::AbstractString, layout::LAYOUT; raw=false, newline=false)
+        apndr = new(name, layout, Event[], Message[], UInt8[], raw, newline)
         if !isnull(apndr.layout)
             hdr = header(layout)
             if length(hdr) > 0
@@ -25,6 +25,13 @@ immutable List <: Appender
         end
         apndr
     end
+end
+function List(config::Dict)
+    nm = get(config, "name", "List")
+    lyt= get(config, :layout, nothing)
+    raw= get(config, "raw", false)
+    nl = get(config, "newline", false)
+    List(nm, LAYOUT(lyt), raw=raw, newline=nl)
 end
 
 name(apnd::List) = isempty(apnd.name) ? string(typeof(apnd)) : apnd.name
@@ -43,7 +50,7 @@ function write(apnd::List, data::Vector{UInt8})
         push!(apnd.data, data)
     else
         msg = bytestring(data)
-        if apnd.newLine
+        if apnd.newline
             for part in split(msg,['\n','\r'],keep=false)
                 push!(apnd.messages, part)
             end

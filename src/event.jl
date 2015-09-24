@@ -1,3 +1,4 @@
+"Default logging event"
 type Log4jlEvent <: Event
     logger::AbstractString
     fqmn::AbstractString
@@ -7,7 +8,7 @@ type Log4jlEvent <: Event
     timestamp::Float64
 end
 
-
+# Constructors
 function Log4jlEvent(logger::AbstractString, fqmn::AbstractString, marker::Symbol, level::Level.EventLevel, msg::Message)
     return Log4jlEvent(logger, fqmn, MARKER(marker), LEVEL(level), msg, time())
 end
@@ -26,3 +27,7 @@ function show(io::IO, evnt::Log4jlEvent)
     !isnull(evnt.message) && print(io, ", Message=", formatted(get(evnt.message)))
     print(io, ")")
 end
+
+# Interface implementation
+level(evnt::Log4jlEvent) = get(evnt.level, Level.OFF)
+marker(evnt::Log4jlEvent) = get(evnt.marker, symbol())
