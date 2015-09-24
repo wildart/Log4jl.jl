@@ -30,7 +30,7 @@ Provides contextual information about a logged message.
 """
 abstract Event
 
-""" Returns the fully qualified module name of the caller of the logging API """
+""" Returns the fully qualified module name (FQMN) of the caller of the logging API """
 fqmn(evnt::Event) = isdefined(evnt, :fqmn) ? evnt.fqmn : throw(AssertionError("Define field or method 'fqmn' in type $(typeof(evnt))"))
 
 """ Gets the level. """

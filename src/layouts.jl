@@ -6,7 +6,7 @@ module Layouts
                      Message, formatted,
                      LOG4JL_LINE_SEPARATOR, getbacktrace
 
-    import Base: serialize, string
+    import Base: serialize, string, show
 
     include("layouts/basic.jl")
     include("layouts/pattern.jl")
