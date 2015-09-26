@@ -3,9 +3,10 @@
     This appender is primarily used for testing. Use in a real environment
     is discouraged as the it could eventually grow out of memory.
 """
-immutable List <: Appender
+type List <: Appender
     name::AbstractString
     layout::LAYOUT
+    state::LifeCycle.State
 
     events::Vector{Event}
     messages::Vector{Message}
@@ -14,9 +15,9 @@ immutable List <: Appender
     raw::Bool
     newLine::Bool
 
-    List(name::AbstractString) = new(name, LAYOUT(), Event[], Message[], UInt8[], false, false)
+    List(name::AbstractString) = new(name, LAYOUT(), LifeCycle.INITIALIZED, Event[], Message[], UInt8[], false, false)
     function List(name::AbstractString, layout::LAYOUT; raw=false, newline=false)
-        apndr = new(name, layout, Event[], Message[], UInt8[], raw, newline)
+        apndr = new(name, layout, LifeCycle.INITIALIZED, Event[], Message[], UInt8[], raw, newline)
         if !isnull(apndr.layout)
             hdr = header(layout)
             if length(hdr) > 0
@@ -33,7 +34,7 @@ function List(config::Dict)
     nl = get(config, "newline", false)
     List(nm, LAYOUT(lyt), raw=raw, newline=nl)
 end
-
+show(io::IO, apnd::List) = print(io, "List($(apnd.state))")
 name(apnd::List) = isempty(apnd.name) ? string(typeof(apnd)) : apnd.name
 layout(apnd::List) = apnd.layout
 

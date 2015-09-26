@@ -1,0 +1,48 @@
+configuration:
+  status: trace
+  name: YAMLTest
+
+  properties:
+    property:
+      name: filename
+      value: ../test-yaml.log
+
+  appenders:
+    ColorConsole:
+      name: STDOUT
+      PatternLayout:
+        pattern: "%l %m%n"
+    File:
+      name: FILE
+      filename: ${filename}
+      append: true
+      PatternLayout:
+        pattern: "%D %5p %C [%t] %u %l %r %m%n"
+    List:
+      name: List
+      filters:
+        ThresholdFilter:
+          level: error
+
+  loggers:
+    logger:
+      -
+        name: Log4jlExample.Log4jlExample2
+        level: debug
+        additivity: false
+        appenderref:
+          ref: STDOUT
+      -
+        name: Log4jlExample
+        level: debug
+        additivity: false
+        appenderref:
+          -
+            ref: FILE
+          -
+            ref: STDOUT
+            level: warn
+    root:
+      level: error
+      appenderref:
+        ref: STDOUT

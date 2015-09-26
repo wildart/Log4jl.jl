@@ -4,6 +4,40 @@ module Level
 end
 typealias LEVEL Nullable{Level.EventLevel}
 
+"""Object life cycle framework
+
+This is interface for handling the life cycle context of an object.
+"""
+module LifeCycle
+    "Abstarct object type"
+    abstract Object
+
+    @enum(State,
+          INITIALIZED,# Initialized but not yet started.
+          STARTING,   # In the process of starting.
+          STARTED,    # Has started.
+          STOPPING,   # Stopping is in progress.
+          STOPPED)    # Has stopped.
+
+    doc"""Life cycle states enumeration"""
+    State
+end
+
+"Starts a life cycle"
+start{T<:LifeCycle.Object}(lc::T) = throw(AssertionError("Function 'start' is not implemented for type $(typeof(lc))"))
+
+"Stops a life cycle"
+stop{T<:LifeCycle.Object}(lc::T) = throw(AssertionError("Function 'stop' is not implemented for type $(typeof(lc))"))
+
+"Returns a life cycle state"
+state{T<:LifeCycle.Object}(lc::T) = isdefined(lc, :state) ? lc.state : throw(AssertionError("Field 'state' is not defined in type $(typeof(evnt))"))
+#state{T<:LifeCycle.Object}(lc::T) = throw(AssertionError("Function 'state' is not implemented for type $(typeof(lc))"))
+
+"Sets a life cycle state"
+state!{T<:LifeCycle.Object}(lc::T, st::LifeCycle.State) = isdefined(lc, :state) ? (lc.state = st) : throw(AssertionError("Field 'state' is not defined in type $(typeof(evnt))"))
+#state!{T<:LifeCycle.Object}(lc::T, st::LifeCycle.State) = throw(AssertionError("Function 'state!' is not implemented for type $(typeof(lc))"))
+
+
 """ Abstract log message
 
 Message implementations that can be logged. Messages can act as wrappers
@@ -106,7 +140,7 @@ In addition to basic fields, every appender should have a method `append!`:
 *Note:* All derived types should have a constructor which accepts `Dict{Any,Any}` object as a parameter.
 Passed dictionary object should contain various initialization parameters. One of the parameters should have a key `:layout` with `Layout` object as its value.
 """
-abstract Appender
+abstract Appender <: LifeCycle.Object
 typealias APPENDER Nullable{Appender}
 typealias APPENDERS Dict{AbstractString, Appender}
 
@@ -126,6 +160,7 @@ Any configuration type implementation must have two fields:
 
 - `name`::AbstractString, the configuration name for a reference
 - `source`::AbstractString, a source of the configuration
+- `state`::LifeCycle.Object, a life cycle state
 
 Any configuration must implement following set of methods:
 
@@ -134,10 +169,10 @@ Any configuration must implement following set of methods:
 - loggers(Configuration) -> Dict{AbstractString, LoggerConfig}
 - appenders(Configuration) -> Dict{AbstractString, Appender}
 """
-abstract Configuration
+abstract Configuration <: LifeCycle.Object
 typealias CONFIGURATION Nullable{Configuration}
 
-show(io::IO, cfg::Configuration) = print(io, "Configuration(", cfg.name, ")")
+show(io::IO, cfg::Configuration) = print(io, """Configuration($(cfg.name), $(isempty(cfg.source) ? "" : cfg.source*", ")$(cfg.state))""")
 
 "Configuration name for a reference"
 name(cfg::Configuration) = isdefined(cfg, :name) ? cfg.name : throw(AssertionError("Define field 'name' in type $(typeof(cfg))"))
@@ -156,6 +191,31 @@ loggers(cfg::Configuration) = throw(AssertionError("Function 'loggers' is not im
 
 "Return a list of `Appender`s from the configuration"
 appenders(cfg::Configuration) = throw(AssertionError("Function 'appenders' is not implemented for type $(typeof(cfg))"))
+
+
+"""
+Abstract Logger Type
+
+All implementations of this type must have two methods:
+
+- `name`, returns a logger name as string is needed to be implemented
+- `message`, returns a message construction type (factory)
+"""
+abstract AbstractLogger
+
+typealias LOGGERS Dict{AbstractString, AbstractLogger}
+
+"Returns a factory type that generates messages"
+message(lgr::AbstractLogger) = throw(AssertionError("Function 'message' is not implemented for type $(typeof(lgr))"))
+
+"Returns a name of the logger"
+name(lgr::AbstractLogger) = throw(AssertionError("Function 'name' is not implemented for type $(typeof(lgr))"))
+
+"Returns a status level of the logger"
+level(lgr::AbstractLogger) = throw(AssertionError("Function 'level' is not implemented for type $(typeof(lgr))"))
+
+"Sets a status level of the logger"
+level!(lgr::AbstractLogger, lvl::Level.EventLevel) = throw(AssertionError("Function 'level!' is not implemented for type $(typeof(lgr))"))
 
 
 """ Abstract event filtering """

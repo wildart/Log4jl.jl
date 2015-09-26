@@ -1,49 +1,61 @@
-using YAML
-
 "YAML configuration"
 type YamlConfiguration <: Configuration
     name::AbstractString
     source::AbstractString
+    state::LifeCycle.State
+
     properties::PROPERTIES
     appenders::APPENDERS
     loggers::LOGCONFIGS
     root::LoggerConfig
     #customLevels
+
+    data::Dict # Configuration data
 end
+function YamlConfiguration(cfgloc::AbstractString)
+    eval(:(import YAML)) # Package lazy eval
+    conf = YAML.load(open(cfgloc))
+    cname = "YAML"
+
+    # Set status logger parameters
+    if haskey(conf, "configuration")
+        stat = conf["configuration"]
+        cname = get(stat, "name", cname)
+        haskey(stat, "status") && level!(LOGGER, evaltype((stat["status"] |> uppercase), "Level"))
+    else
+        error(LOGGER, "Malformed configuration: `configuration` node does not exist.")
+    end
+
+    YamlConfiguration(cname, cfgloc, LifeCycle.INITIALIZED,
+                      PROPERTIES(), APPENDERS(), LOGCONFIGS(), LoggerConfig(),
+                      conf)
+end
+
 appender(cfg::YamlConfiguration, name::AbstractString) = get(cfg.appenders, name, nothing)
 appenders(cfg::YamlConfiguration) = cfg.appenders
 logger(cfg::YamlConfiguration, name::AbstractString) = logger(cfg.loggers, name, cfg.root)
 loggers(cfg::YamlConfiguration) = cfg.loggers
 
-function YamlConfiguration()
-    properties = PROPERTIES()
-    appenders = APPENDERS(
-        "STDOUT" => Appenders.ColorConsole(Dict(
-            :layout => Layouts.BasicLayout() #TODO: PatternLayout
-        ))
-    )
-
-    # Reference appender to root configuration
-    root =  LoggerConfig(LOG4JL_DEFAULT_STATUS_LEVEL)
-    reference(root, appenders["STDOUT"])
-
-    return new("Default", "", properties, appenders, LOGCONFIGS(), root)
-end
-
-function parse_yaml_config(filename)
-    conf = YAML.load(open(filename))["configuration"]
-    csource = filename
-    cname = get(conf, "name", "YAML")
-    status = LEVEL(haskey(conf, "status") ? evaltype((conf["status"] |> uppercase), "Level") : nothing)
+function setup(cfg::YamlConfiguration)
+    # if configuration is malformed
+    if !haskey(cfg.data, "configuration")
+        warn(LOGGER, "Malformed configuration: creating default ERROR-level Root logger with Console appender")
+        default!(cfg)
+        return
+    end
+    conf = cfg.data["configuration"]
 
     # parse properties
-    properties = PROPERTIES()
     haskey(conf, "properties") && for p in values(conf["properties"])
-        properties[p["name"]] = p["value"]
+        cfg.properties[p["name"]] = p["value"]
+    end
+    # update appenders and loggers with pattern values
+    for (k,v) in cfg.properties
+        haskey(conf, "appenders") && subst_value(conf["appenders"], k, v)
+        haskey(conf, "loggers")   && subst_value(conf["loggers"], k, v)
     end
 
     # parse appenders
-    appenders = APPENDERS()
     haskey(conf, "appenders") && for (atype, aconf) in conf["appenders"]
         # get appender type
         apndType = contains(atype, ".") ?
@@ -66,53 +78,107 @@ function parse_yaml_config(filename)
         end
 
         # create appender object
-        appenders[aconf["name"]] = apndType(aconf)
+        cfg.appenders[aconf["name"]] = apndType(aconf)
     end
+end
 
-    # parse loggers
-    loggers = LOGCONFIGS()
-    root = LoggerConfig(LOG4JL_DEFAULT_STATUS_LEVEL)
+function configure(cfg::YamlConfiguration)
+    conf = cfg.data["configuration"]
 
+    refs = Dict[]
+
+    # add loggers
     if haskey(conf, "loggers")
         lconf = conf["loggers"]
 
-        # there is a root logger configuration
+        # if there is a root logger configuration
         if haskey(lconf, "root")
             rconf = lconf["root"]
-            root.level = configlevel(rconf)
+            cfg.root.level = configlevel(rconf)
+
             if haskey(rconf, "appenderref")
-                rconf_aref = rconf["appenderref"]
-                if isa(rconf_aref, Dict)
-                    reference(root, appenders[rconf_aref["ref"]], configlevel(rconf_aref))
-                else
-                    for rconf_aref in rconf["appenderref"]
-                        reference(root, appenders[rconf_aref["ref"]], configlevel(rconf_aref))
-                    end
-                end
+                push!(refs, Dict("name"=>"root", "appenderref" => rconf["appenderref"]))
             end
+        else
+            LOGGER.warn("No Root logger was configured, creating default ERROR-level Root logger with Console appender")
+            default!(cfg)
         end
 
-        # there are other logger configuration
+        # if there are other logger configuration
         if haskey(lconf, "logger")
             for lcconf in lconf["logger"]
                 lcname = lcconf["name"]
                 lcadd = get(lcconf, "additivity", true)
                 lclvl = configlevel(lcconf)
+                cfg.loggers[lcname] = LoggerConfig(lcname, lclvl, lcadd)
+            end
+            append!(refs, lconf["logger"])
+        end
+    else
+        warn(LOGGER, "No Loggers were configured, using default. Is the Loggers element missing?")
+        default!(cfg)
+    end
 
-                lc = LoggerConfig(lcname, lclvl, lcadd)
-                lcconf_aref = lcconf["appenderref"]
-                if isa(lcconf_aref, Dict)
-                    reference(lc, appenders[lcconf_aref["ref"]], configlevel(lcconf_aref))
+    # configure references
+    for lcconf in refs
+        lcname = lcconf["name"]
+        lc = lcname == "root" ? cfg.root : cfg.loggers[lcname]
+        lcconf_arefs = lcconf["appenderref"]
+        lcconf_arefs = isa(lcconf_arefs, Dict) ? [lcconf_arefs] : lcconf_arefs
+        for lcconf_aref in lcconf_arefs
+            if haskey(lcconf_aref, "ref")
+                aref = lcconf_aref["ref"]
+                if haskey(cfg.appenders, aref)
+                    apnd = cfg.appenders[aref]
+                    reference(lc, apnd, configlevel(lcconf_aref))
                 else
-                    for lcconf_aref in lcconf["appenderref"]
-                        reference(lc, appenders[lcconf_aref["ref"]], configlevel(lcconf_aref))
-                    end
+                    error(LOGGER, "Unable to locate appender '$aref' for logger '$lcname'")
                 end
-
-                loggers[lcname] = lc
+            else
+                error(LOGGER, "No reference provided for logger '$lcname'")
             end
         end
     end
 
-    return YamlConfiguration(cname, csource, properties, appenders, loggers, root)
+    # setup parents
+    parents!(cfg)
+end
+
+function subst_value(conf::Dict, k::AbstractString, v::AbstractString)
+    for (dk,dv) in conf
+        if isa(dv, AbstractString)
+            pat = "\${$k}"
+            if contains(dv, pat)
+                conf[dk] = replace(dv, pat, v)
+            end
+        elseif isa(dv, Dict)
+            subst_value(dv, k, v)
+        end
+    end
+    return conf
+end
+
+#TODO: reduce duplication between this method and DefaultConfiguration
+function default!(cfg::YamlConfiguration)
+    cfg.appenders["STDOUT"] = Appenders.ColorConsole(
+        Dict(
+            :layout => Layouts.BasicLayout()
+        )
+    )
+    reference(cfg.root, cfg.appenders["STDOUT"])
+end
+
+
+#TODO: reduce duplication between this method and other configurations
+function parents!(cfg::YamlConfiguration)
+    for l in values(cfg.loggers)
+        lname = name(l)
+        i = rsearch(lname, '.')
+        if i > 0
+            parent = logger(cfg, lname[1:i-1])
+            l.parent = Nullable(parent)
+        else
+            l.parent = Nullable(cfg.root)
+        end
+    end
 end

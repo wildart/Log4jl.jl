@@ -3,21 +3,49 @@ The anchor for the logging system. It maintains a list of all the loggers
 requested by applications and a reference to the configuration.
 It will be atomically updated whenever a reconfigure occurs.
 """
-type LoggerContext
+type LoggerContext <: LifeCycle.Object
     name::AbstractString
     loggers::LOGGERS
     config::Configuration
     configLocation::AbstractString
+    state::LifeCycle.State
 end
-LoggerContext(name::AbstractString) = LoggerContext(name, LOGGERS(), DefaultConfiguration(), "")
+LoggerContext(name::AbstractString, cgf::Configuration, cfgloc::AbstractString) =
+    LoggerContext(name, LOGGERS(), cgf, cfgloc, LifeCycle.INITIALIZED)
+LoggerContext(name::AbstractString) = LoggerContext(name, DefaultConfiguration(), "")
+
+config(ctx::LoggerContext) = ctx.config
+
+function start(ctx::LoggerContext)
+    debug(LOGGER, "Starting LoggerContext[name=$(ctx.name), state=$(string(state(ctx)))]...")
+    if state(ctx) == LifeCycle.INITIALIZED || state(ctx) == LifeCycle.STOPPED
+        # add shutdonw hook
+        atexit(()->begin
+                    debug(LOGGER, symbol("SHUTDOWN HOOK"), "Stopping LoggerContext[name=$(ctx.name), state=$(string(state(ctx)))]")
+                    stop(ctx)
+                   end)
+        state!(ctx, LifeCycle.STARTED)
+    end
+    start(config(ctx))
+    debug(LOGGER, "LoggerContext[name=$(ctx.name), state=$(string(state(ctx)))] started OK.")
+end
+
+function stop(ctx::LoggerContext)
+    debug(LOGGER, "Stopping LoggerContext[name=$(ctx.name), state=$(string(state(ctx)))]...")
+    state(ctx) == LifeCycle.STOPPED && return
+    state!(ctx, LifeCycle.STOPPING)
+    stop(ctx.config)
+    state!(ctx, LifeCycle.STOPPED)
+    debug(LOGGER, "Stopped LoggerContext[name=$(ctx.name), state=$(string(state(ctx)))].")
+end
 
 "Returns a logger from a logger context"
-function logger(ctx::LoggerContext, name::AbstractString, msg::FACTORY=FACTORY())
+function logger(ctx::LoggerContext, name::AbstractString, msgfactory)
     # return logger in exists
     name in ctx && return ctx.loggers[name]
 
     # otherwise create new logger and return it
-    lgr = Logger(name, msg, logger(ctx.config, name))
+    lgr = Logger(name, msgfactory, logger(ctx.config, name))
     ctx.loggers[name] = lgr
     return lgr
 end
@@ -30,87 +58,3 @@ in(name::AbstractString, ctx::LoggerContext) = name in keys(ctx.loggers)
 
 "Returns the current `Configuration`."
 config(ctx::LoggerContext) = ctx.config
-
-"Set the configuration to be used in the context."
-function config!(ctx::LoggerContext, cfg::Configuration)
-    ctx.config = cfg
-    #TODO: reconfigure()
-end
-
-
-
-"Logger context selector"
-abstract ContextSelector
-
-"Returns a logger context."
-context(ctxsel::ContextSelector, fqmn::AbstractString, cfgloc::AbstractString="") = throw(AssertionError("Function 'context' is not implemented for type $(typeof(ctxsel))"))
-
-"Return all contexts"
-contexts(ctxsel::ContextSelector) = throw(AssertionError("Function 'contexts' is not implemented for type $(typeof(ctxsel))"))
-
-"Remove specified logger context"
-delete!(ctxsel::ContextSelector, ctx::LoggerContext) = throw(AssertionError("Function 'contexts' is not implemented for type $(typeof(ctxsel))"))
-
-
-
-"Simple logger context selector that keeps only one context"
-type SingleContextSelector <: ContextSelector
-    context::LoggerContext
-    SingleContextSelector() = new(LoggerContext("Default"))
-end
-context(ctxsel::SingleContextSelector, fqmn::AbstractString, cfgloc::AbstractString="") = ctxsel.context
-contexts(ctxsel::SingleContextSelector) = Dict(:Default=>ctxsel.context)
-
-
-"""Module context selector choses `LoggerContext` based on module name
-
-All `LoggerContext` instances are stored in module constants with unique name `__Log4jl_LC<ID>__`
-"""
-type ModuleContextSelector <: ContextSelector
-    default::LoggerContext
-    ModuleContextSelector() = new(LoggerContext("Default"))
-end
-
-function context(ctxsel::ModuleContextSelector, fqmn::AbstractString, cfgloc::AbstractString="")
-    # return default context if module doesn't exist
-    m = getmodule(fqmn)
-    if m !== nothing
-        mlc_var = mlcvar(fqmn)
-        isconst(m, mlc_var) && return getfield(m, mlc_var)
-
-        # otherwise create a new context
-        ctx = LoggerContext(string(mlc_var))
-        ctx.configLocation = cfgloc
-
-        # define constant in module with LoggerContext object
-        ccall(:jl_set_const, Void, (Any, Any, Any), m,  mlc_var, ctx)
-
-        return ctx
-    end
-    return ctxsel.default
-end
-
-function contexts(ctxsel::ModuleContextSelector)
-
-    function submodules(m::Module, mdls::Vector{Symbol}= Symbol[], ctxs = Dict{Symbol,LoggerContext}())
-        for vs in names(m, true)
-            !isdefined(m, vs) && continue
-            v = getfield(m, vs)
-            if isa(v, Module) && vs ∉ [:Main, :Core, :Base]
-                fqmn = symbol(v)
-                fqmn in mdls && continue
-                push!(mdls, fqmn)
-                mlc_var = mlcvar(string(fqmn))
-                if isdefined(v, mlc_var)
-                    ctxs[fqmn] = getfield(v, mlc_var)
-                end
-                submodules(v, mdls, ctxs)
-            end
-        end
-        return mdls, ctxs
-    end
-
-    mdls, ctxs = submodules(Main)
-    ctxs[:Default] = ctxsel.default
-    return ctxs
-end

@@ -6,14 +6,13 @@
 
 ## Usage
 
-A configuration macro `@Log4jl.configure` must be called after importing `Log4jl` module.
-Macro call initializes and configures the logging framework. Next, you can create loggers by calling `Log4jl.getLogger` function, and use any of logging functions or macros to perform logging operations.
-
+To create logger call `@Log4jl.logger` macro after importing `Log4jl` module.
+This macro call initializes and configures the logging framework. Also it creates logger object which cab be used by any of logging functions or macros to perform logging operations.
 
 ```julia
 using Log4jl
-@Log4jl.configure
-const logger = Log4jl.getLogger()
+
+const logger = @Log4jl.logger
 
 error(logger, "Error in my code")
 
@@ -36,49 +35,49 @@ See usage in [example/simple.jl](example/simple.jl).
 - Logger hierarchy based on hierarchy of configurations
 - Global logger context keeps track of all loggers
 - Root logger has no name and additivity, its default level is ERROR
+- Logging functions support:
+    - plaint text
+    - markers
+    - objects
 
 ### Implementation details
 - 'isenabled' checks if logger allowed to process event at specified level
 
 ### Missing
-- Object life cycle
 - On-fly reconfiguration
-- Multi-threading support
+- Multi-threading/processing support
 - Custom log levels
 - Filters
     - Accept: no filters called, accept event
     - Deny: ignore event, return to caller
     - Neutral: pass event to other filters
 - Lookups
-- Markers
 - Appended additivity: event processed by logger and all its ancestors.
-- Configuration formats: JSON, XML, YAML, DSL (macro based)
+- Configuration formats: JSON, XML, DSL (macro based)
 - Handle configuration recursion
 
-### Useful packages
-- Formating.jl
+### Logger
 
-
-### Configuration
-
-First, logging infrastructure should be configured. Use `@Log4jl.configure [<config_file> | begin<prog_config>end]`  macro call to run `Log4jl` configuration. This should be the first call after referencing the package.
+In order to create logger, call macro `@Log4jl.logger [<name>] [MSG=<message_type>] [URI=<config_location>] [begin <config_code_block> end]`.
 
 ```julia
-using Log4jl
+# get the root logger
+const logger = @Log4jl.rootlogger
 
-# Configuration will be loaded from default file,
-# otherwise default will be used.
-@Log4jl.configure
+# get the configured logger by name (uses FQMN by default)
+const logger = @Log4jl.logger
 
-# or
+# get the configured logger by name explicitly
+const logger = @Log4jl.logger "TestLogger"
 
-# Configuration will be loaded from file specified in the parameter
-@Log4jl.configure "myconfig.xml"
+# get the configured logger by name that will use parameterized messages
+const logger = @Log4jl.logger "TestLogger" MSG=ParameterizedMessage
 
-# or
+# get the configured logger by from file specified in the parameter
+const logger = @Log4jl.logger URI="myconfig.xml"
 
-# Configuring a logger context with a programmatic configuration
-@Log4jl.configure begin
+# get the configured logger from a programmatic configuration
+const logger = @Log4jl.logger begin
     Configuration("Custom",
         PROPERTIES(),
         APPENDERS(),
@@ -86,43 +85,23 @@ using Log4jl
     )
 end
 ```
-Macro `@Log4jl.configure` optionally accepts one parameter which could be
 
-- A a configuration file name as a string, or
-- A programmatic configuration that defined in `begin...end` block.
+Macro `@Log4jl.logger` creates logger instance. It accepts following parameters:
 
-The default configuration file is `log4jl.*`. An extension of the configuration file determines format in which configuration is described. Currently supported formats YAML, JSON, XML.
+1. `name`: a string which specifies a logger name from a configuration
+2. `MSG=<message_type>`: a message type used for configuring a logger
+3. `URI=<config_location>`: a configuration location
+4. `begin <configuration> end`: a configuration program (must return `Configuration` object)
+
+If the root logger is required use macro `Log4jl.rootlogger` with the same parameters as for `Log4jl.logger` with one exception: root logger does not have a name.
+
+The default configuration file is `log4jl.*`. An extension of the configuration file determines format in which configuration is described.
+
+Currently supported configuration formats: YAML.
 
 Configuration file should be located in:
 - For stand-alone module: a directory where a source code file of the module is located.
 - For package: a package root directory.
-
-
-
-### Logger
-
-In order to create logger, call macro `@Log4jl.logger [<name>] [<message_type>]`.
-
-```julia
-# get the root logger
-@Log4jl.rootlogger
-
-# get the configured logger by name (used module name by default)
-@Log4jl.logger
-
-# get the configured logger by name explicitly
-@Log4jl.logger "TestLogger"
-
-# get the configured logger by name that will use parameterized messages
-@Log4jl.logger "TestLogger" ParameterizedMessage
-```
-
-Macro `@Log4jl.logger` creates logger instance in current module. The macro accepts following parameters:
-
-1. `name`: a logger name as string from the configuration
-2. `message_type`: a message type used in a configured logger
-
-If the root logger is required use macro `@Log4jl.rootlogger`.
 
 ### Message
 
@@ -137,11 +116,23 @@ If the root logger is required use macro `@Log4jl.rootlogger`.
     1. A logger context selector is initialized as object and assigned to global constant `LOG4JL_CONTEXT_SELECTOR` from an environment variable with the same name. Default context selector type is `Log4jl.ModuleContextSelector`.
     2. Default status level is initialized as `LOG4JL_DEFAULT_STATUS_LEVEL` global constant from an environment variable with the same name.  Default status level is `Log4jl.Level.ERROR`.
     3. A logger event type is is initialized as `LOG4JL_LOG_EVENT` global constant from an environment variable with the same name. Default logger event type is `Log4jl.Log4jlEvent`.
-3. Macro `Log4jl.configure` is called with(out) parameters
-    1. Configuration is created
+3. Macro `Log4jl.logger` is called with(out) parameters
+    1. Parameters parsed
+    2. Context selector is used to create a logging context
+    3. Configuration is created
         a. Programmatic configuration is evaluated
         b. Configuration file is located, loaded and parsed
-    2. Logging context is created for current module using `LOG4JL_CONTEXT_SELECTOR`
-    3. Logging context is initialized with the created configuration
+    4. Logging context is initialized with the created configuration
+    5. Logging context is started
+        1. Shutdown hook is created.
+    6. Configuration is started
+        1. Configuration is setup (properties and appenders are created)
+        2. Configuration is configured (loggers are created and referenced to appenders)
+        3. All appenders are started
+    7. Logging context used to create a logger wrapper
+    8. Logger object is returned
+4. Logger object is used in logging functions.
 
+## Shutdown sequence
 
+TODO: proper shutdown when `workspace` is called.

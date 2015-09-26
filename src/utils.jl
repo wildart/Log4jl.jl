@@ -1,5 +1,4 @@
 type BackTraceElement
-    mod::Symbol
     func::Symbol
     file::Symbol
     line::Int
@@ -10,11 +9,10 @@ typealias BACKTRACE Nullable{BackTraceElement}
 function getbacktrace()
     bt = backtrace()
     btout = BackTraceElement[]
-    mod = current_module()
     for b in bt
         code = ccall(:jl_lookup_code_address, Any, (Ptr{Void}, Cint), b, true)
         if !code[6]
-            push!(btout, BackTraceElement(symbol(mod),code[1],code[2],code[3]))
+            push!(btout, BackTraceElement(code[1],code[2],code[3]))
         end
     end
     return btout

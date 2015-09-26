@@ -1,27 +1,58 @@
-"Logger wrapper for `LoggerConfig`"
-type Logger
-    name::AbstractString
-    message::FACTORY
-    config::LoggerConfig
-end
-
-typealias LOGGERS Dict{AbstractString, Logger}
-
-"Returns a function that generates messages"
-msgen(lgr::Logger) = get(lgr.message, LOG4JL_DEFAULT_MESSAGE)
-
-"Logs a message"
-log(lgr::Logger, fqmn, level, marker, msg::Message) =
-    log(lgr.config, lgr.name, fqmn, level, marker, msg)
-
-function log(lgr::Logger, fqmn, level, marker, msg, params...)
-    if isenabled(lgr.config, level, marker, msg, params...)
-        log(lgr, fqmn, level, marker, call(msgen(lgr), msg, params...))
+"Main logging function"
+function log(lgr::AbstractLogger, fqmn, level, marker, msg, params...)
+    if isenabled(lgr, level, marker, msg, params...)
+        log(lgr, fqmn, level, marker, call(message(lgr), msg, params...))
     end
     return
 end
 
-function show(io::IO, lgr::Logger)
-    print(io, lgr.name, ":", level(lgr.config))
-end
 
+"Logger wrapper for `LoggerConfig`"
+type Logger <: AbstractLogger
+    name::AbstractString
+    message::DataType
+    config::LoggerConfig
+end
+show(io::IO, lgr::Logger) = print(io, name(lgr), ":", level(lgr))
+name(lgr::Logger) = lgr.name
+message(lgr::Logger) = lgr.message
+level(lgr::Logger) = level(lgr.config)
+
+"Logs a message"
+log(lgr::Logger, fqmn, level, marker, msg::Message) =
+    log(lgr.config, name(lgr), fqmn, level, marker, msg)
+
+"Check if message is valid for logging"
+isenabled(lgr::Logger, lvl, mkr, msg, params...) = isenabled(lgr.config, lvl, mkr, msg, params...)
+
+
+"Simple IO logger"
+type SimpleLogger <: AbstractLogger
+    name::AbstractString
+    message::DataType
+    level::Level.EventLevel
+
+    showdatetime::Bool
+    showname::Bool
+    dateformat::Dates.DateFormat
+    io::IO
+
+    function SimpleLogger(nm::AbstractString, msg::DataType, lvl::Level.EventLevel)
+        return new(nm, msg, lvl, true, true, Dates.ISODateTimeFormat, STDERR)
+    end
+end
+show(io::IO, lgr::SimpleLogger) = print(io, name(lgr), ":", lgr |> level |> string)
+name(lgr::SimpleLogger) = lgr.name
+message(lgr::SimpleLogger) = lgr.message
+level(lgr::SimpleLogger) = lgr.level
+level!(lgr::SimpleLogger, lvl::Level.EventLevel) = lgr.level = lvl
+
+isenabled(lgr::SimpleLogger, lvl, mkr, msg, params...) = level(lgr) <= lvl
+
+function log(lgr::SimpleLogger, fqmn, lvl, mkr, msg::Message)
+    lgr.showdatetime && print(lgr.io, Dates.format(Dates.unix2datetime(time()), lgr.dateformat), " ")
+    print(lgr.io, string(lvl), " ")
+    lgr.showname && print(lgr.io, name(lgr), " ")
+    !isnull(mkr) && print(lgr.io, "[", get(mkr), "] ")
+    println(lgr.io, msg |> formatted, " ")
+end

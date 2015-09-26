@@ -145,8 +145,8 @@ function formatpattern(lyt::PatternLayout, evnt::Event)
                 Dates.format(timestamp(evnt) |> Dates.unix2datetime, tformat)
             elseif sym == 'F' # file
                 bt != nothing ? basename(string(bt.file)) : "NA"
-            elseif sym == 'l' # module(func:line)
-                bt != nothing ? "$(bt.mod)($(bt.func):$(bt.line))" : "NA"
+            elseif sym == 'l' # func[file:line]
+                bt != nothing ? "$(bt.func)[$(basename(string(bt.file))):$(bt.line)]" : "NA"
             elseif sym == 'L' # line
                 bt != nothing ? string(bt.line) : "NA"
             elseif sym == 'M' # function

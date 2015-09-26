@@ -3,13 +3,15 @@ Console appender
 
 It appends log events to `STDOUT` or `STDERR` using a layout specified by the user.
 """
-immutable Console <: Appender
+type Console <: Appender
     name::AbstractString
     layout::LAYOUT
+    state::LifeCycle.State
+
     target::IO
 end
 function Console(name::AbstractString, lyt::LAYOUT=LAYOUT(), target::AbstractString="STDERR")
-    Console(name, lyt, target == "STDOUT" ? STDOUT : STDERR)
+    Console(name, lyt, LifeCycle.INITIALIZED, target == "STDOUT" ? STDOUT : STDERR)
 end
 function Console(config::Dict)
     io = get(config, "target", "STDERR")

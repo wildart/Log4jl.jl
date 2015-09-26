@@ -1,7 +1,7 @@
 module Log4jl
 
-export trace, debug, info, warn, error, fatal
-#       @trace, @debug, @info, @warn, @error, @fatal
+export trace, debug, info, warn, error, fatal,
+       @trace, @debug, @info, @warn, @error, @fatal
 
 import Base: append!, serialize, show, in, delete!, string,
              trace, info, warn, error
@@ -24,11 +24,17 @@ include("logconfig.jl")
 include("config.jl")
 include("logger.jl")
 include("context.jl")
+include("selector.jl")
 
 # Constants
 const LOG4JL_DEFAULT_MESSAGE = Messages.ParameterizedMessage
 const LOG4JL_CONFIG_DEFAULT_PREFIX = "log4jl"
-const LOG4JL_CONFIG_EXTS = Dict(:YAML => [".yaml", ".yml"], :JSON=>[".json", ".jsn"], :LightXML=>[".xml"])
+const LOG4JL_CONFIG_EXTS = Dict(:YAML => [".yaml", ".yml"],
+                                :JSON=>[".json", ".jsn"],
+                                :LightXML=>[".xml"])
+const LOG4JL_CONFIG_TYPES = Dict(:DEFAULT=>DefaultConfiguration,
+                                 :NULL => NullConfiguration,
+                                 :YAML => YamlConfiguration)
 const LOG4JL_CONFIG_PARSER_CALL = "parse_<type>_config"
 const ROOT_LOGGER_NAME = NAME()
 
@@ -46,6 +52,18 @@ for (fn,lvl) in ((:trace, Level.TRACE),
     @eval $fn(l::AbstractLogger, marker::MARKER, msg, params...) = $fn(l, string(current_module()), marker, msg, params...)
     @eval $fn(l::AbstractLogger, marker::Symbol, msg, params...) = $fn(l, string(current_module()), MARKER(marker), msg, params...)
     @eval $fn(l::AbstractLogger, msg, params...) = $fn(l, MARKER(), msg, params...)
+end
+
+# Logger macros (use `logger` constant to call logging methods)
+for fn in [:trace, :debug, :info, :warn, :error, :fatal]
+    @eval macro $fn(msg...)
+        # get current module `logger` constant
+        mod = current_module()
+        fcall = Expr(:call, esc($fn), esc(:logger), string(mod), msg...)
+        if isdefined(mod, :logger) && isconst(mod, :logger)
+            :($fcall)
+        end
+    end
 end
 
 
@@ -83,8 +101,9 @@ end
 Creates logger instance. It accepts following parameters:
 
 1. `name`: a logger name as string from the configuration
-2. `message_type`: a message type used in a configured logger
-3. `configuration`: a configuration location or program
+2. `MSG=<message_type>`: a message type used in a configured logger
+3. `URI=<config_location>`: a configuration location
+4. `begin <configuration> end`: a configuration program (must return `Configuration` object)
 """
 macro logger(params...)
     # get current module and its locations
@@ -92,56 +111,8 @@ macro logger(params...)
     cmname = string(cm)
     cmdir = moduledir(cm)
 
-    # println(params)
-    # println(map(typeof, params))
-
     # Parse arguments
     logname, msgfactory, config_file, config_eval = parseargs(params, cmname)
-
-    # Form configuration
-    # if isnull(config_eval)
-    #     config_loc = joinpath(cmdir, get(config_file, ""))
-    #     config_file, parser_type = if isnull(config_file)
-    #         searchConfiguration(cmdir)
-    #     else
-    #         config_loc, findConfigurationParser(config_loc)
-    #     end
-    #     config_eval = formConfiguration(config_file, parser_type)
-    # end
-
-    # Evaluate configuration
-    # config = evalConfiguration(config_eval)
-
-    # logger context is initialize and configured
-    # ctx = context(LOG4JL_CONTEXT_SELECTOR, cmname,
-    #               isnull(config_eval) ? config_file : config_eval)
-
-    # start context if necessary
-    # ctx.state == LifeCycle.INITIALIZED && start(ctx)
-
-    # config!(ctx, config)
-
-    # # create logger macros
-    # for fn in [:trace, :debug, :info, :warn, :error, :fatal]
-    #     @eval macro $fn(msg...)
-    #         # get current module `logger` constant
-    #         mod = current_module()
-    #         fcall = Expr(:call, esc($fn), esc(:logger), string(mod), msg...)
-    #         quote
-    #             if isdefined($mod, :logger) && isconst($mod, :logger)
-    #                 $fcall;
-    #             end
-    #         end
-    #     end
-    # end
-
-    # quote
-    #     println($name)
-    #     println($msgfactory)
-    #     println($config_file)
-    #     println($config_eval)
-    #     println($config)
-    # end
 
     # find context using a module name
     ctx = if isnull(config_eval)
@@ -164,127 +135,6 @@ macro rootlogger(params...)
     :(@logger $ROOT_LOGGER_NAME $(params...))
 end
 
-
-
-# Functions
-"Loads the `LoggerContext` using the `ContextSelector`."
-function getContext(config_file, config_eval)
-    # find context using a module name
-    ctxname = string(current_module())
-    # find context using a module name
-    ctx = context(LOG4JL_CONTEXT_SELECTOR, ctxname)
-    # start context if necessary
-    ctx.state == LifeCycle.INITIALIZED && start(ctx)
-    # return context
-    return ctx
-end
-
-"Returns a `Logger` with the a specified name."
-function getLogger(name::NAME=NAME(string(current_module())),
-                   msgfactory::FACTORY=FACTORY())
-    # empty logger name is a root
-    logname = get(name, "")
-    # use provided or default message factory
-    mf = get(msgfactory, LOG4JL_DEFAULT_MESSAGE)
-    # return logger
-    return logger(getContext(), logname, mf)
-end
-getLogger(name::AbstractString, msgfactory::DataType) = getLogger(NAME(name), FACTORY(msgfactory))
-
-"Returns the root logger."
-getRootLogger() = getLogger(ROOT_LOGGER_NAME)
-
-"""Log4jl configuration
-
-If programmatic configuration is specified then it will be evaluated into a `Configuration` object. If evaluation The default configuration will be used.
-1. Log4jl will look for `log4jl.yaml` or `log4jl.yml` or a user defined YAML configuration file if `YAML` module is loaded, and will attempt to load the configuration
-2. If a YAML file cannot be located, and if JSON module is loaded, attempt to load the configuration from `log4jl.json` or `log4jl.jsn` or a user defined JSON configuration file
-3. If a JSON file cannot be located, and if XML module is loaded, attempt to load the configuration from `log4jl.xml` or a user defined XML configuration file
-4. If no configuration file could be located the default configuration will be used. This will cause logging output to go to the console.
-
-"""
-macro configure(body...)
-    cm = current_module()
-    cm_path = moduledir(cm)
-
-    local config
-    local config_file = ""
-    local config_eval
-
-    # parse macro parameters
-    if length(body) > 0 && isa(body[1], Expr) &&  body[1].head == :block
-        config_eval = body[1]
-        config_file = "CUSTOM"
-    else
-        parser_type = :NONE
-        if length(body) > 0 && isa(body[1], AbstractString)
-
-            # Determine parser type based on a configuration file extension
-            cfg_prefix, cfg_ext= splitext(body[1])
-            for (p,exts) in LOG4JL_CONFIG_EXTS
-                if cfg_ext in exts
-                    parser_type = p
-                    break
-                end
-            end
-
-            config_file = joinpath(cm_path, body[1])
-            config_file = isfile(config_file) ? config_file : ""
-        else
-
-            # Search for default configuration file
-            for (p,exts) in LOG4JL_CONFIG_EXTS
-                for ext in exts
-                    cf = joinpath(cm_path, LOG4JL_CONFIG_DEFAULT_PREFIX*ext)
-                    if isfile(cf)
-                        config_file = cf
-                        parser_type = p
-                        break
-                    end
-                end
-                !isempty(config_file) && break
-            end
-
-        end
-
-        # dynamically load configuration reader
-        pts = lowercase(string(parser_type))
-        parser_call = replace(LOG4JL_CONFIG_PARSER_CALL, "<type>", pts)
-        ptscript = joinpath(dirname(@__FILE__), "config", "$(pts).jl")
-        config_eval = parse("include(\"$ptscript\"); $(parser_call)(\"$(config_file)\")")
-    end
-
-    # Evaluating configuration
-    config = if isempty(config_file)
-        DefaultConfiguration()
-    else
-        try
-            eval(Log4jl, config_eval)
-        catch err
-            println(err)
-            # error(LOGGER, "Configuration failed. Using default configuration. Error: $(err)")
-            DefaultConfiguration()
-        end
-    end
-
-    # logger context is initialize and configured
-    ctx = context(LOG4JL_CONTEXT_SELECTOR, string(cm), config_file == "CUSTOM" ? "" : config_file)
-    config!(ctx, config)
-
-    # create logger macros
-    for fn in [:trace, :debug, :info, :warn, :error, :fatal]
-        @eval macro $fn(msg...)
-            # get current module `logger` constant
-            mod = current_module()
-            fcall = Expr(:call, esc($fn), esc(:logger), string(mod), msg...)
-            quote
-                if isdefined($mod, :logger) && isconst($mod, :logger)
-                    $fcall;
-                end
-            end
-        end
-    end
-end
 
 function __init__()
     # Default line separator

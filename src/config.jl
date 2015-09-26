@@ -1,112 +1,46 @@
-"Logger configuration"
-type LoggerConfig
-    name::AbstractString
-    level::LEVEL
-    additive::Bool
+# Abstract methods
 
-    appenders::Dict{AbstractString, Appenders.Reference}
-    parent::Nullable{LoggerConfig}
-    event::FACTORY
-    includelocation::Bool
-    #TODO: properties::Dict{Property, Bool}
-    #TODO: filter::Filter
-end
+function start(cfg::Configuration)
+    debug(LOGGER, "Starting configuration $cfg")
+    state!(cfg, LifeCycle.STARTING)
 
-typealias LOGCONFIGS Dict{AbstractString, LoggerConfig}
+    setup(cfg)
+    configure(cfg)
 
-# Constructors
-function LoggerConfig(name::AbstractString, level::LEVEL, additive::Bool)
-    return LoggerConfig(name, level, additive, APPENDERS(),
-                        Nullable{LoggerConfig}(), FACTORY(LOG4JL_LOG_EVENT), true)
-end
-function LoggerConfig(name::AbstractString, level::Level.EventLevel,
-                      appenders::APPENDERS=APPENDERS(), additive::Bool = true)
-    return LoggerConfig(name, LEVEL(level), additive, appenders,
-                        Nullable{LoggerConfig}(), FACTORY(LOG4JL_LOG_EVENT), true)
-end
-LoggerConfig(level::Level.EventLevel) = LoggerConfig("", level)
-LoggerConfig() = LoggerConfig(LOG4JL_DEFAULT_STATUS_LEVEL)
-
-"Returns the logging level"
-level(lc::Nullable{LoggerConfig}) = isnull(lc) ? LOG4JL_DEFAULT_STATUS_LEVEL : level(get(lc))
-level(lc::LoggerConfig) = get(lc.level, level(lc.parent))
-
-"Returns the value of the additive flag"
-isadditive(lc::LoggerConfig) = lc.additive
-
-"Logs an event"
-function log(lc::LoggerConfig, evnt::Event)
-    # println("LogConfig: ", lc)
-    # for a in values(lc.appenders)
-    #     println(a)
+    # for l in values(loggers(cfg))
+    #     start(l)
     # end
-    map(ref->append!(ref, evnt), values(lc.appenders))
-    lc.additive && !isnull(lc.parent) && log(get(lc.parent), evnt)
-end
-function log(lc::LoggerConfig, logger, fqmn, level, marker, msg)
-    log(lc, call(LOG4JL_LOG_EVENT, logger, fqmn, marker, level, msg)) #TODO: properties
-end
 
-show(io::IO, lc::LoggerConfig) = print(io, "LoggerConfig(", isempty(lc.name) ? "root" : lc.name, ":", level(lc) , ")")
-
-"Check if message could be filtered based on its parameters"
-function isenabled(lc::LoggerConfig, lvl, marker, msg, params...)
-    level(lc) > lvl && return false
-    #TODO: add filters by marker and message content
-    return true
-end
-
-"Adds an appender reference to configuration"
-function reference(lc::LoggerConfig, apndr::Appender, lvl::LEVEL=LEVEL(), filter::FILTER=FILTER())
-    apn = name(apndr)
-    #println("Ref:", apn, lc, lvl)
-    lc.appenders[apn] = Appenders.Reference(apndr, get(lvl, Level.ALL), filter)
-end
-
-
-"Null configuration"
-type NullConfiguration <: Configuration
-    name::AbstractString
-    source::AbstractString
-    root::LoggerConfig
-
-    NullConfiguration() = new("Null", "", LoggerConfig(Level.OFF))
-end
-appender(cfg::NullConfiguration, name::AbstractString) = nothing
-appenders(cfg::NullConfiguration) = APPENDERS()
-logger(cfg::NullConfiguration, name::AbstractString) = root
-loggers(cfg::NullConfiguration) = LOGCONFIGS()
-
-
-"Default Log4jl configuration"
-type DefaultConfiguration <: Configuration
-    name::AbstractString
-    source::AbstractString
-    properties::PROPERTIES
-    appenders::APPENDERS
-    loggers::LOGCONFIGS
-    root::LoggerConfig
-    #customLevels
-
-    function DefaultConfiguration()
-        properties = PROPERTIES()
-        appenders = APPENDERS(
-            "STDOUT" => Appenders.ColorConsole(Dict(
-                :layout => Layouts.BasicLayout()
-            ))
-        )
-
-        # Reference appender to root configuration
-        root =  LoggerConfig(LOG4JL_DEFAULT_STATUS_LEVEL)
-        reference(root, appenders["STDOUT"])
-
-        return new("Default", "", properties, appenders, LOGCONFIGS(), root)
+    # Start all appenders
+    for a in values(appenders(cfg))
+        start(a)
     end
+
+    # start(root)
+
+    state!(cfg, LifeCycle.STARTED)
+    debug(LOGGER, "Started configuration $cfg OK.")
 end
-appender(cfg::DefaultConfiguration, name::AbstractString) = get(cfg.appenders, name, nothing)
-appenders(cfg::DefaultConfiguration) = cfg.appenders
-logger(cfg::DefaultConfiguration, name::AbstractString) = logger(cfg.loggers, name, cfg.root)
-loggers(cfg::DefaultConfiguration) = cfg.loggers
+
+function stop(cfg::Configuration)
+    state!(cfg, LifeCycle.STOPPING)
+    trace(LOGGER, "Stopping $(cfg)...")
+    #TODO: stop loggers
+
+    # stop appenders
+    c = 0
+    for a in values(appenders(cfg))
+        if state(a) == LifeCycle.STARTED
+            stop(a)
+            c+=1
+        end
+    end
+    trace(LOGGER, "Stopped $c appenders in $(cfg)")
+
+    state!(cfg, LifeCycle.STOPPED)
+    trace(LOGGER, "Stopped $(cfg)")
+end
+
 
 """Locates the appropriate `LoggerConfig` for a `Logger` name.
 
@@ -120,4 +54,74 @@ function logger(loggers::LOGCONFIGS, name::AbstractString, root::LoggerConfig)
         pname in keys(loggers) && return loggers[pname]
     end
     return root
+end
+
+
+# Some configuration implementations
+include("config/default.jl")
+include("config/yaml.jl")
+
+# helper hunctions
+
+"Evaluate a configuration"
+function evalConfiguration(config_eval)
+    if isnull(config_eval)
+        trace(LOGGER, "Configuration is empty. Using default configuration.")
+        DefaultConfiguration()
+    else
+        try
+            eval(Log4jl, get(config_eval)) # evaluate configuration in Log4jl module
+        catch err
+            error(LOGGER, "Configuration failed. Using default configuration. Error: $(err)")
+            DefaultConfiguration()
+        end
+    end
+end
+
+"Search a configuration file in a specified directory and identify its parser"
+function searchConfiguration(search_dir)
+    parser_type = Nullable{Symbol}()
+    config_file = ""
+    # Search for default configuration file
+    for (p,exts) in LOG4JL_CONFIG_EXTS
+        for ext in exts
+            cf = joinpath(search_dir, LOG4JL_CONFIG_DEFAULT_PREFIX*ext)
+            if isfile(cf)
+                config_file = cf
+                parser_type = Nullable(p)
+                break
+            end
+        end
+        !isempty(config_file) && break
+    end
+    debug(LOGGER, "Found configuration file: $config_file. Parser: $(get(parser_type, :NA))")
+    config_file, parser_type
+end
+
+"Detect a configuration parser from a configuration file"
+function findConfigurationParser(config_file)
+    parser_type = Nullable{Symbol}()
+    !isfile(config_file) && return parser_type
+    cfg_prefix, cfg_ext= splitext(config_file)
+    for (p,exts) in LOG4JL_CONFIG_EXTS
+        if cfg_ext in exts
+            parser_type = Nullable(p)
+            break
+        end
+    end
+    debug(LOGGER, "Parser detected: $(get(parser_type, :NA))")
+    return parser_type
+end
+
+"Form evaluation script for a configuration parser"
+function formConfiguration(config_file, parser_type)
+    # Check if parser exists and form configuration evaluator
+    if !isnull(parser_type)
+        pts = get(parser_type) |> string |> lowercase
+        parser_call = replace(LOG4JL_CONFIG_PARSER_CALL, "<type>", pts)
+        ptscript = joinpath(dirname(@__FILE__), "config", "$(pts).jl")
+        Nullable(parse("include(\"$ptscript\"); $(parser_call)(\"$(config_file)\")"))
+    else
+        Nullable{Expr}() # or return empty
+    end
 end

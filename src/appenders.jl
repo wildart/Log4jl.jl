@@ -1,14 +1,33 @@
+# Abstract methods
+
+function start(apnd::Appender)
+    # trace(LOGGER, "Starting $apnd.")
+    state!(apnd, LifeCycle.STARTING)
+    isnull(layout(apnd)) && error(LOGGER, "No layout set for the appender $apnd.")
+    state!(apnd, LifeCycle.STARTED)
+    # trace(LOGGER, "Started $apnd OK.")
+end
+
+function stop(apnd::Appender)
+    # trace(LOGGER, "Stopping $apnd")
+    state!(apnd, LifeCycle.STOPPING)
+    state!(apnd, LifeCycle.STOPPED)
+    # trace(LOGGER, "Stopped $apnd OK.")
+end
+
+
 module Appenders
 
     import ..Log4jl: Appender, layout, name,
                      Event, level,
                      Message, Level,
                      Filter, FILTER,
-                     Layout, LAYOUT, header, footer, format
+                     Layout, LAYOUT, header, footer, format,
+                     LifeCycle, start, stop, state, state!
 
-    import Base: empty!, write, append!, string
+    import Base: empty!, write, append!, string, show
 
-    export name, layout, append!
+    export name, layout, append!, start, stop
 
     "An `Appender` reference"
     type Reference
@@ -25,7 +44,7 @@ module Appenders
 
         !isnull(evnt.level) && get(evnt.level) < ref.level && return
 
-        # handle recursive calls
+        #TODO: handle recursive calls
 
         # append event
         append!(ref.appender, evnt)
@@ -34,7 +53,7 @@ module Appenders
     include("appenders/list.jl")
     include("appenders/console.jl")
     include("appenders/color_console.jl")
-    #include("appenders/file.jl")
+    include("appenders/file.jl")
     #include("appenders/socket.jl")
 
 end

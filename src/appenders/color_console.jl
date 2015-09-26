@@ -3,13 +3,15 @@ Colored console appender
 
 It appends log events to `STDOUT` or `STDERR` using a layout specified by the user.
 """
-immutable ColorConsole <: Appender
+type ColorConsole <: Appender
     name::AbstractString
     layout::LAYOUT
+    state::LifeCycle.State
+
     io::IO
 end
 function ColorConsole(name::AbstractString, lyt::LAYOUT=LAYOUT(), io::AbstractString="STDOUT")
-    ColorConsole(name, lyt, io == "STDOUT" ? STDOUT : STDERR)
+    ColorConsole(name, lyt, LifeCycle.INITIALIZED, io == "STDOUT" ? STDOUT : STDERR)
 end
 function ColorConsole(config::Dict)
     io = get(config, "io", "STDOUT")
