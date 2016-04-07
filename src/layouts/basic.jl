@@ -23,7 +23,7 @@ footer(lyt::BasicLayout) = UInt8[]
 function string(lyt::BasicLayout, evnt::Event)
     output = Dates.format(timestamp(evnt) |> Dates.unix2datetime, lyt.dformat)
     output *= " - "
-    output *= string(level(evnt))
+    output *= rpad(string(level(evnt)), 5, " ")
     output *= " - "
     output *= fqmn(evnt)
     output *= " - "

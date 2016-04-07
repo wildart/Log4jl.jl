@@ -152,7 +152,7 @@ function formatpattern(lyt::PatternLayout, evnt::Event)
             elseif sym == 'M' # function
                 bt != nothing ? string(bt.func) : "NA"
             elseif sym == 'p' # level
-                evnt |> level |> string
+                rpad(evnt |> level |> string, 5, " ")
             elseif sym == 'r' # time elapsed (milliseconds)
                 round(Int, (time_ns()-lyt.initialized)/10e6) |> string
             elseif sym == 't' # thread or PID
