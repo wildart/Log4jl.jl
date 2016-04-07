@@ -75,7 +75,7 @@ function parseargs(params, dn, df=LOG4JL_DEFAULT_MESSAGE)
     config_file = Nullable{AbstractString}()
 
     length(params) > 0 && for p in params
-        trace(LOGGER, "Logger arameter: $p, $(typeof(p))")
+        trace(LOGGER, "Logger parameter: $p, $(typeof(p))")
         if isa(p, AbstractString)
             name = p
         elseif isa(p, Nullable)
