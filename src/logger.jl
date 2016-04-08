@@ -38,7 +38,7 @@ type SimpleLogger <: AbstractLogger
     io::IO
 
     function SimpleLogger(nm::AbstractString, msg::DataType, lvl::Level.EventLevel)
-        return new(nm, msg, lvl, true, true, Dates.ISODateTimeFormat, STDERR)
+        return new(nm, msg, lvl, true, true, Dates.DateFormat("yyyy-mm-ddTHH:MM:SS.sss"), STDERR)
     end
 end
 show(io::IO, lgr::SimpleLogger) = print(io, name(lgr), ":", lgr |> level |> string)
