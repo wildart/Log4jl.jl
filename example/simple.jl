@@ -52,9 +52,12 @@ module Log4jlExample
         function test_log2()
             Log4jlExample2.Log4jlExample3.test_log3()
 
-            @trace "AAA"
-            @info  "CCC {}" 2
-            @error "EEE {}" 4
+            @trace "L2: AAA"
+            @debug "L2: BBB"
+            @info  "L2: CCC {}" 2
+            @warn  "L2: DDD {}" 3
+            @error "L2: EEE {}" 4
+            @fatal "L2: FFF {}" 5
         end
 
     end
@@ -67,17 +70,19 @@ module Log4jlExample
         info(logger,  "ccccc {}", 2)
         @warn "ddddd {}" 3
         sleep(1.)
-        error(logger, "eeeee {}", 4)
         fatal(logger, "fffff {}", 5)
+        error(logger, "eeeee {}", 4)
     end
 
 end
 
 println("Current:", current_module())
 
-# for ctx in Log4jl.contexts(Log4jl.LOG4JL_CONTEXT_SELECTOR)
-#     println(ctx)
-# end
+println("Registered contexts:")
+for (ctxname, ctx) in Log4jl.contexts(Log4jl.LOG4JL_CONTEXT_SELECTOR)
+    println("\t$ctxname => $ctx")
+end
+println()
 
 Log4jlExample.test_log1()
-println("END")
+println("END\n")
