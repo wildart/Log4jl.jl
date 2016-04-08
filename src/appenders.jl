@@ -1,18 +1,18 @@
 # Abstract methods
 
 function start(apnd::Appender)
-    # trace(LOGGER, "Starting $apnd.")
+    trace(LOGGER, "Starting $apnd.")
     state!(apnd, LifeCycle.STARTING)
     isnull(layout(apnd)) && error(LOGGER, "No layout set for the appender $apnd.")
     state!(apnd, LifeCycle.STARTED)
-    # trace(LOGGER, "Started $apnd OK.")
+    trace(LOGGER, "Started $apnd OK.")
 end
 
 function stop(apnd::Appender)
-    # trace(LOGGER, "Stopping $apnd")
+    trace(LOGGER, "Stopping $apnd")
     state!(apnd, LifeCycle.STOPPING)
     state!(apnd, LifeCycle.STOPPED)
-    # trace(LOGGER, "Stopped $apnd OK.")
+    trace(LOGGER, "Stopped $apnd OK.")
 end
 
 
@@ -23,7 +23,8 @@ module Appenders
                      Message, Level,
                      Filter, FILTER,
                      Layout, LAYOUT, header, footer, format,
-                     LifeCycle, start, stop, state, state!
+                     LifeCycle, start, stop, state, state!,
+                     LOG4JL_LINE_SEPARATOR
 
     import Base: empty!, write, append!, string, show
 
