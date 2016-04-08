@@ -11,7 +11,7 @@ end
 
 function BasicLayout(conf::Dict)
     sdformat = get(conf, "dateFormat", "HH:MM:SS.sss")
-    return SerializedLayout(Dates.DateFormat(sdformat))
+    return BasicLayout(Dates.DateFormat(sdformat))
 end
 
 # Interface implementation
@@ -28,16 +28,7 @@ function string(lyt::BasicLayout, evnt::Event)
     output *= fqmn(evnt)
     output *= " - "
     output *= evnt |> message |> formatted
-    output *= convert(ASCIIString, LOG4JL_LINE_SEPARATOR)
+    output *= bytestring(LOG4JL_LINE_SEPARATOR)
     return output
 end
 serialize(lyt::BasicLayout, evnt::Event) = string(lyt, evnt).data
-
-# function serialize(lyt::BasicLayout, evnt::Event)
-#     iob = IOBuffer()
-#     write(iob, "$(Dates.format(timestamp(evnt) |> Dates.unix2datetime, lyt.dformat)) - ")
-#     write(iob, "$(get(level(evnt))) - ")
-#     write(iob, evnt |> message |> formatted)
-#     write(iob, LOG4JL_LINE_SEPARATOR)
-#     return takebuf_array(iob)
-# end

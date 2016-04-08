@@ -60,7 +60,7 @@ type PatternLayout <: StringLayout
     function PatternLayout(pattern::AbstractString=DEFAULT_CONVERSION_PATTERN)
         lyt = new()
         lyt.strftime_format = "%Y-%m-%d %H:%M:%S"
-        lyt.date_format = Dates.ISODateTimeFormat
+        lyt.date_format = Dates.DateFormat("yyyy-mm-ddTHH:MM:SS.sss")
         lyt.conversion = r"%(-?\d+)?(\.\d+)?(c|C|d|D|F|K|l|L|m|M|n|p|r|t|u|%)?({\d+}|{\D+}|{\w+})?"
         lyt.initialized = time_ns()
         lyt.pattern = pattern
