@@ -7,6 +7,7 @@ function start(cfg::Configuration)
     setup(cfg)
     configure(cfg)
 
+    #TODO: start loggers' filters
     # for l in values(loggers(cfg))
     #     start(l)
     # end
@@ -25,7 +26,7 @@ end
 function stop(cfg::Configuration)
     state!(cfg, LifeCycle.STOPPING)
     trace(LOGGER, "Stopping $(cfg)...")
-    #TODO: stop loggers
+    #TODO: stop loggers' filters
 
     # stop appenders
     c = 0
@@ -124,4 +125,41 @@ function formConfiguration(config_file, parser_type)
     else
         Nullable{Expr}() # or return empty
     end
+end
+
+"Locate configuration resource"
+function locateconfig(cfgloc::AbstractString, loader=nothing)
+    # get module location
+    cmdir = isa(loader, Module) ? moduledir(loader) : pwd()
+
+    config_file, parser_type = if isempty(cfgloc)
+        # search the module directory for configurations
+        searchConfiguration(cmdir)
+    else
+        (isabspath(cfgloc) ? cfgloc : joinpath(cmdir, cfgloc), nothing)
+    end
+
+    !isfile(config_file) && return ""
+
+    return config_file
+end
+
+"Returns the `Configuration` from a module or loaded from a location."
+function getconfig(cfgloc::AbstractString, cfgname::AbstractString, loader=nothing)
+
+    # locate configuration
+    config_file = locateconfig(cfgloc, loader)
+
+    if !isempty(config_file)
+        # find parser for provided configuration
+        parser_type = findConfigurationParser(config_file)
+        if !isnull(parser_type)
+            cfgtype = LOG4JL_CONFIG_TYPES[get(parser_type, :DEFAULT)]
+            return isempty(cfgname) ? getconfig(cfgtype, config_file) :
+                                      getconfig(cfgtype, config_file, cfgname)
+        end
+    end
+
+    error(LOGGER, "No Log4jl configuration file found. Using default configuration: logging only errors to the console.")
+    return DefaultConfiguration()
 end

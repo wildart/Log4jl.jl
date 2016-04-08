@@ -16,6 +16,9 @@ state(cfg::NullConfiguration) = LifeCycle.STOPPED
 setup(cfg::NullConfiguration) = nothing
 configure(cfg::NullConfiguration) = nothing
 
+# Register configuration type
+LOG4JL_CONFIG_TYPES[:NULL] = NullConfiguration
+
 
 "Default Log4jl configuration"
 type DefaultConfiguration <: Configuration
@@ -27,7 +30,7 @@ type DefaultConfiguration <: Configuration
     appenders::APPENDERS
     loggers::LOGCONFIGS
     root::LoggerConfig
-    #customLevels
+    #TODO: customLevels
 
     DefaultConfiguration(cfgloc::AbstractString="") =
         new("Default", cfgloc, LifeCycle.INITIALIZED, PROPERTIES(), APPENDERS(), LOGCONFIGS(), LoggerConfig())
@@ -49,3 +52,6 @@ function configure(cfg::DefaultConfiguration)
     # Reference appender to root configuration
     reference(cfg.root, cfg.appenders["STDOUT"])
 end
+
+# Register configuration type
+LOG4JL_CONFIG_TYPES[:DEFAULT] = DefaultConfiguration

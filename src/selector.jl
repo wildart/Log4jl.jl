@@ -1,51 +1,9 @@
 "Logger context selector"
 abstract ContextSelector
 
-"Returns a logger context with specific configuration."
-context(ctxsel::ContextSelector,
-        fqmn::AbstractString,
-        cfg::Configuration,
-        cfgloc::AbstractString) = throw(AssertionError("Function 'context' is not implemented for type $(typeof(ctxsel))"))
-
-"Returns a logger context with evaluated configuration."
-context(ctxsel::ContextSelector,
-        fqmn::AbstractString,
-        cfgexp::Nullable{Expr}) = context(ctxsel, fqmn, evalConfiguration(cfgexp), "")
-
-context(ctxsel::ContextSelector,
-        fqmn::Module,
-        cfgexp::Nullable{Expr}) = context(ctxsel, string(fqmn), cfgexp)
-
-"Returns a logger context with located configuration."
-context(ctxsel::ContextSelector,
-        fqmn::AbstractString,
-        cfgloc::AbstractString) = context(ctxsel, getmodule(fqmn), cfgloc)
-
-function context(ctxsel::ContextSelector, fqmn::Module, cfgloc::AbstractString)
-    # Get module dir
-    cmdir = moduledir(fqmn)
-
-    config_file, parser_type = if isempty(cfgloc)
-        # search a module directory for configurations
-        searchConfiguration(cmdir)
-    else
-        # or use a provided location to a determine parser
-        config_loc = joinpath(cmdir, cfgloc)
-        config_loc, findConfigurationParser(config_loc)
-    end
-
-    # Get configuration type and instantiate object from it
-    cfgtype = LOG4JL_CONFIG_TYPES[get(parser_type, :DEFAULT)]
-    cfg = try
-        eval(Log4jl, Expr(:call, cfgtype, config_file))
-    catch err
-        error(LOGGER, "Configuration failed. Using default configuration. Error: $(err)")
-        DefaultConfiguration()
-    end
-
-    context(ctxsel, string(fqmn), cfg, config_file)
-end
-context(ctxsel::ContextSelector, cfgloc::AbstractString) = context(ctxsel, current_module(), cfgloc)
+"Return current context"
+context(ctxsel::ContextSelector, fqmn::AbstractString, cfgloc::AbstractString) = throw(AssertionError("Function 'context' is not implemented for type $(typeof(ctxsel))"))
+context(ctxsel::ContextSelector, cfgloc::AbstractString="") = context(ctxsel, string(current_module()), cfgloc)
 
 "Return all contexts"
 contexts(ctxsel::ContextSelector) = throw(AssertionError("Function 'contexts' is not implemented for type $(typeof(ctxsel))"))
@@ -62,12 +20,11 @@ delete!(ctxsel::ContextSelector, ctx::LoggerContext) = throw(AssertionError("Fun
 Simple logger context selector that keeps only one context inside itself.
 """
 type SingleContextSelector <: ContextSelector
-    context::LoggerContext
+    default::LoggerContext
     SingleContextSelector() = new(LoggerContext("Default"))
 end
-context(ctxsel::SingleContextSelector, fqmn::AbstractString, cfgloc::AbstractString="") = ctxsel.context
-contexts(ctxsel::SingleContextSelector) = Dict(:Main=>ctxsel.context)
-
+context(ctxsel::SingleContextSelector, fqmn::AbstractString, cfgloc::AbstractString="") = ctxsel.default
+contexts(ctxsel::SingleContextSelector) = Dict(:Default=>ctxsel.default)
 
 
 """Module context selector choses `LoggerContext` based on module name
@@ -81,23 +38,52 @@ end
 
 function context(ctxsel::ModuleContextSelector,
                  fqmn::AbstractString,
-                 cfg::Configuration,
-                 cfgloc::AbstractString)
+                 cfgloc::AbstractString="")
+
     # return default context if module doesn't exist
-    m = getmodule(fqmn)
-    if m !== nothing
-        mlc_var = mlcvar(fqmn)
-        isconst(m, mlc_var) && return getfield(m, mlc_var)
+    isempty(fqmn) && return ctxsel.default
+
+    # get module for context selector
+    ctx_module = getmodule(fqmn)
+
+    # return context object in the module
+    mlc_var = mlcvar(string(fqmn))
+    if isconst(ctx_module, mlc_var)
+        trace(LOGGER, "Found context: $mlc_var")
+        return getfield(ctx_module, mlc_var)
+    end
+
+    ctx = ctxsel.default
+
+    # check configuration source
+    cfgloc = locateconfig(cfgloc, ctx_module)
+    if isempty(cfgloc)
+        trace(LOGGER, "Invalid configuration source")
+
+        # look for parent context
+        parent_ctx_module = module_parent(ctx_module)
+        found = false
+        for vs in names(parent_ctx_module, true)
+            if startswith(string(vs), LOG4JL_CTX_PREFIX)
+                ctx = getfield(parent_ctx_module, vs)
+                trace(LOGGER, "Found parent context: $vs")
+                found = true
+                break
+            end
+        end
+        !found && trace(LOGGER, "No parent context found.")
+    else
+        trace(LOGGER, "Creating new context in the module: $ctx_module")
 
         # otherwise create a new context
-        ctx = LoggerContext(string(mlc_var), cfg, cfgloc)
+        ctx = LoggerContext(string(mlc_var), cfgloc)
 
         # define constant in module with LoggerContext object
-        ccall(:jl_set_const, Void, (Any, Any, Any), m,  mlc_var, ctx)
-
-        return ctx
+        ccall(:jl_set_const, Void, (Any, Any, Any), ctx_module,  mlc_var, ctx)
     end
-    return ctxsel.default
+
+    # return default context if non found
+    return ctx
 end
 
 function contexts(ctxsel::ModuleContextSelector)

@@ -13,6 +13,11 @@ global LOG4JL_INTERNAL_STATUS_LEVEL
 global LOG4JL_LOG_EVENT
 global LOG4JL_CONTEXT_SELECTOR
 
+const LOG4JL_CONFIG_DEFAULT_PREFIX = "log4jl"
+const LOG4JL_CONFIG_EXTS = Dict{Symbol, Vector{AbstractString}}()
+const LOG4JL_CONFIG_TYPES = Dict{Symbol, DataType}()
+const LOG4JL_CONFIG_PARSER_CALL = "parse_<type>_config"
+
 # Imports
 include("utils.jl")
 include("types.jl")
@@ -28,14 +33,6 @@ include("selector.jl")
 
 # Constants
 const LOG4JL_DEFAULT_MESSAGE = Messages.ParameterizedMessage
-const LOG4JL_CONFIG_DEFAULT_PREFIX = "log4jl"
-const LOG4JL_CONFIG_EXTS = Dict(:YAML => [".yaml", ".yml"],
-                                :JSON=>[".json", ".jsn"],
-                                :LightXML=>[".xml"])
-const LOG4JL_CONFIG_TYPES = Dict(:DEFAULT=>DefaultConfiguration,
-                                 :NULL => NullConfiguration,
-                                 :YAML => YamlConfiguration)
-const LOG4JL_CONFIG_PARSER_CALL = "parse_<type>_config"
 const ROOT_LOGGER_NAME = NAME()
 
 # Logger methods
@@ -82,7 +79,6 @@ function parseargs(params, dn, df=LOG4JL_DEFAULT_MESSAGE)
             name = get(p, "")
         elseif isa(p, Expr) && p.head == :block
             config_eval = Nullable(p)
-            config_file = Nullable{AbstractString}("")
         elseif isa(p, Expr) && (p.head == :(=) || p.head ==:kw)
             if p.args[1] == :URI
                 config_file = NAME(p.args[2])
@@ -115,15 +111,7 @@ macro logger(params...)
     logname, msgfactory, config_file, config_eval = parseargs(params, cmname)
 
     # find context using a module name
-    ctx = if isnull(config_eval)
-        debug(LOGGER, """Configuration file is $(!isnull(config_file) ? get(config_file) : "not provided")""")
-        context(LOG4JL_CONTEXT_SELECTOR, cm, get(config_file, ""))
-    else
-        context(LOG4JL_CONTEXT_SELECTOR, cm, config_eval)
-    end
-
-    # start context if necessary
-    ctx.state == LifeCycle.INITIALIZED && start(ctx)
+    ctx = getcontext(cmname, cfgloc = config_file, cfgexp = config_eval)
 
     # return logger
     quote
@@ -135,6 +123,32 @@ macro rootlogger(params...)
     :(@logger $ROOT_LOGGER_NAME $(params...))
 end
 
+function getcontext(ctxname::AbstractString;
+                    cfgloc::Nullable{AbstractString}=Nullable{AbstractString}(),
+                    cfgexp::Nullable{Expr}=Nullable{Expr}())
+
+    debug(LOGGER, """Configuration file is $(get(cfgloc, "not provided"))""")
+
+    # get context (and set configuration location if available)
+    ctx = context(LOG4JL_CONTEXT_SELECTOR, ctxname, get(cfgloc, ""))
+
+    # start context if necessary
+    if ctx.state == LifeCycle.INITIALIZED
+        # configuration defined as expression
+        if !isnull(cfgexp)
+            debug(LOGGER, "Evaluating configuration block")
+            cfg = evalConfiguration(cfgexp)
+            start(ctx, cfg)
+        elseif !isnull(cfgloc)
+            cfg = getconfig(get(cfgloc), ctxname)
+            start(ctx, cfg)
+        else
+            start(ctx)
+        end
+    end
+
+    return ctx
+end
 
 function __init__()
     # Default line separator

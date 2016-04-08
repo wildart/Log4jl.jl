@@ -6,35 +6,92 @@ It will be atomically updated whenever a reconfigure occurs.
 type LoggerContext <: LifeCycle.Object
     name::AbstractString
     loggers::LOGGERS
-    config::Configuration
     configLocation::AbstractString
+    config::Configuration
     state::LifeCycle.State
 end
-LoggerContext(name::AbstractString, cgf::Configuration, cfgloc::AbstractString) =
-    LoggerContext(name, LOGGERS(), cgf, cfgloc, LifeCycle.INITIALIZED)
-LoggerContext(name::AbstractString) = LoggerContext(name, DefaultConfiguration(), "")
+LoggerContext(name::AbstractString, cfgloc::AbstractString, cfg::Configuration) =
+    LoggerContext(name, LOGGERS(), cfgloc, cfg, LifeCycle.INITIALIZED)
+LoggerContext(name::AbstractString, cfgloc::AbstractString="") =
+    LoggerContext(name, cfgloc, DefaultConfiguration())
 
-config(ctx::LoggerContext) = ctx.config
+show(io::IO, ctx::LoggerContext) = print(io, "LoggerContext[name=$(ctx.name), state=$(string(state(ctx)))]")
 
+"Setup context with a new configuration and return previous one"
+function setconfig!(ctx::LoggerContext, cfg::Configuration)
+    prevcfg = ctx.config
+
+    if isdefined(cfg, :properties)
+        !haskey(cfg.properties, "host") && setindex!(cfg.properties, "host", gethostname())
+        !haskey(cfg.properties, "context") && setindex!(cfg.properties, "context", ctx.name)
+    end
+    start(cfg)
+    ctx.config = cfg
+    ctx.configLocation = source(cfg)
+    #TODO: updateloggers()
+    prevcfg !== nothing && stop(prevcfg)
+
+    return prevcfg
+end
+
+"Setup context with a configuration located at the provided location"
+function setconfig!(ctx::LoggerContext, cfgloc::AbstractString)
+    ctx.configLocation = cfgloc
+    reconfigure!(ctx)
+end
+
+"Reconfigure context"
+function reconfigure!(ctx::LoggerContext)
+    debug(LOGGER, "Reconfiguration started for context[name=$(ctx.name)] at $(ctx.configLocation)")
+    cfg = getconfig(ctx.configLocation, ctx.name, current_module())
+    @assert cfg !== nothing "No configuration found"
+    setconfig!(ctx, cfg)
+    debug(LOGGER, "Reconfiguration complete for context[name=$(ctx.name)] at $(ctx.configLocation)")
+end
+
+"Start context."
 function start(ctx::LoggerContext)
     debug(LOGGER, "Starting LoggerContext[name=$(ctx.name), state=$(string(state(ctx)))]...")
     if state(ctx) == LifeCycle.INITIALIZED || state(ctx) == LifeCycle.STOPPED
-        # add shutdonw hook
+        state!(ctx, LifeCycle.STARTING)
+        reconfigure!(ctx)
+        # add shutdown hook
         atexit(()->begin
                     debug(LOGGER, symbol("SHUTDOWN HOOK"), "Stopping LoggerContext[name=$(ctx.name), state=$(string(state(ctx)))]")
                     stop(ctx)
                    end)
         state!(ctx, LifeCycle.STARTED)
     end
-    start(config(ctx))
     debug(LOGGER, "LoggerContext[name=$(ctx.name), state=$(string(state(ctx)))] started OK.")
 end
 
+"Start context with a specific configuration."
+function start(ctx::LoggerContext, cfg::Configuration)
+    debug(LOGGER, "Starting LoggerContext[name=$(ctx.name), state=$(string(state(ctx)))]...")
+    if state(ctx) == LifeCycle.INITIALIZED || state(ctx) == LifeCycle.STOPPED
+        state!(ctx, LifeCycle.STARTING)
+        # add shutdown hook
+        atexit(()->begin
+                    debug(LOGGER, symbol("SHUTDOWN HOOK"), "Stopping LoggerContext[name=$(ctx.name), state=$(string(state(ctx)))]")
+                    stop(ctx)
+                   end)
+        state!(ctx, LifeCycle.STARTED)
+    end
+    setconfig!(ctx, cfg)
+    debug(LOGGER, "LoggerContext[name=$(ctx.name), state=$(string(state(ctx)))] started OK.")
+end
+
+"Stop context."
 function stop(ctx::LoggerContext)
     debug(LOGGER, "Stopping LoggerContext[name=$(ctx.name), state=$(string(state(ctx)))]...")
     state(ctx) == LifeCycle.STOPPED && return
     state!(ctx, LifeCycle.STOPPING)
-    stop(ctx.config)
+
+    prevcfg = ctx.config
+    ctx.config = NullConfiguration()
+    #TODO: updateloggers()
+    stop(prevcfg)
+
     state!(ctx, LifeCycle.STOPPED)
     debug(LOGGER, "Stopped LoggerContext[name=$(ctx.name), state=$(string(state(ctx)))].")
 end
@@ -55,6 +112,3 @@ loggers(ctx::LoggerContext) = values(ctx.loggers)
 
 "Checks if a logger with the specified name exists."
 in(name::AbstractString, ctx::LoggerContext) = name in keys(ctx.loggers)
-
-"Returns the current `Configuration`."
-config(ctx::LoggerContext) = ctx.config

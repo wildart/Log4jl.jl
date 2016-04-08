@@ -12,24 +12,30 @@ type YamlConfiguration <: Configuration
 
     data::Dict # Configuration data
 end
-function YamlConfiguration(cfgloc::AbstractString)
+
+# Register configuration type
+LOG4JL_CONFIG_TYPES[:YAML] = YamlConfiguration
+LOG4JL_CONFIG_EXTS[:YAML]  = [".yaml", ".yml"]
+
+
+function YamlConfiguration(cfgloc::AbstractString, cfgname::AbstractString="YAML")
     eval(:(import YAML)) # Package lazy eval
     conf = YAML.load(open(cfgloc))
-    cname = "YAML"
 
     # Set status logger parameters
     if haskey(conf, "configuration")
         stat = conf["configuration"]
-        cname = get(stat, "name", cname)
+        cfgname = get(stat, "name", cfgname)
         haskey(stat, "status") && level!(LOGGER, evaltype((stat["status"] |> uppercase), "Level"))
     else
         error(LOGGER, "Malformed configuration: `configuration` node does not exist.")
     end
 
-    YamlConfiguration(cname, cfgloc, LifeCycle.INITIALIZED,
+    YamlConfiguration(cfgname, cfgloc, LifeCycle.INITIALIZED,
                       PROPERTIES(), APPENDERS(), LOGCONFIGS(), LoggerConfig(),
                       conf)
 end
+getconfig(::Type{YamlConfiguration}, cfgloc::AbstractString, cfgname::AbstractString="YAML") = YamlConfiguration(cfgloc, cfgname)
 
 appender(cfg::YamlConfiguration, name::AbstractString) = get(cfg.appenders, name, nothing)
 appenders(cfg::YamlConfiguration) = cfg.appenders

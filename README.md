@@ -25,6 +25,18 @@ See usage in [example/simple.jl](example/simple.jl).
 
 **Note:** If you use logging macros, make sure that constant `logger` exists in your current module.
 
+## Logging Separation
+
+There are many well known use cases where applications may share an environment with other applications and each has a need to have its own, separate logging environment.
+
+There are a few ways to archive logging separation using different `ContextSelector` implementations:
+
+- `SingleContextSelector`: This selector creates a single `LoggerContext` using a single configuration that will be shared across all applications.
+
+- `ModuleContextSelector`: This selector creates a one `LoggerContext` per module. This allows each module be configured to share the same configuration or can be individually configured. However, if configuration is not provided or has error then the parent module context is used for the current module. If there exist no parent module then new context is created with default configuration.
+
+Context selection can be done by setting environment variable `LOG4JL_CONTEXT_SELECTOR` with a name of context selector type.
+
 ## Dev Notes
 
 ### Architecture

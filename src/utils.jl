@@ -38,8 +38,7 @@ function moduledir(m::Module)
     # otherwise go to th root folder of the package
     rmpaths = contains(mpath, mname) ? 2 : 1
 
-    dlm = @windows? '\\' : '/'
-    return join(split(mpath, dlm)[1:end-rmpaths], dlm)
+    return join(split(mpath, Base.path_separator)[1:end-rmpaths], Base.path_separator)
 end
 
 function isfqmn(fqmn::AbstractString, m::Module=Main)
@@ -62,7 +61,8 @@ function getmodule(fqmn::AbstractString, m::Module=Main)
     return m
 end
 
-mlcvar(fqmn::AbstractString) = symbol("__Log4jl_LC$(string(hash(fqmn)))__")
+const LOG4JL_CTX_PREFIX = "__Log4jl_"
+mlcvar(fqmn::AbstractString) = symbol("$(LOG4JL_CTX_PREFIX)LC$(string(hash(fqmn)))__")
 
 function submodules(m::Module, mdls::Vector{Symbol}= Symbol[])
     for vs in names(m, true)
