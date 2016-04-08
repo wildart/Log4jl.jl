@@ -17,6 +17,7 @@ show(io::IO, lgr::Logger) = print(io, name(lgr), ":", level(lgr))
 name(lgr::Logger) = lgr.name
 message(lgr::Logger) = lgr.message
 level(lgr::Logger) = level(lgr.config)
+level!(lgr::Logger, lvl::Level.EventLevel) = level!(lgr.config, lvl)
 
 "Logs a message"
 log(lgr::Logger, fqmn, level, marker, msg::Message) =

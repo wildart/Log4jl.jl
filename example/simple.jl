@@ -20,6 +20,7 @@ module Log4jlExample
 
         using Log4jl
         const logger = @Log4jl.logger URI="log4jl.json"
+        Log4jl.level!(logger, Log4jl.Level.WARN)
 
         module Log4jlExample3
             println("Current:", current_module())
@@ -81,6 +82,9 @@ println("Current:", current_module())
 println("Registered contexts:")
 for (ctxname, ctx) in Log4jl.contexts(Log4jl.LOG4JL_CONTEXT_SELECTOR)
     println("\t$ctxname => $ctx")
+    for lgrname in keys(ctx.loggers)
+        println("\t\t$lgrname => $(Log4jl.logger(ctx, lgrname))")
+    end
 end
 println()
 

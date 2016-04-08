@@ -33,6 +33,7 @@ name(lc::LoggerConfig) = lc.name
 "Returns the logging level"
 level(lc::Nullable{LoggerConfig}) = isnull(lc) ? LOG4JL_DEFAULT_STATUS_LEVEL : level(get(lc))
 level(lc::LoggerConfig) = get(lc.level, level(lc.parent))
+level!(lc::LoggerConfig, lvl::Level.EventLevel) = (lc.level = lvl)
 
 "Returns the value of the additive flag"
 isadditive(lc::LoggerConfig) = lc.additive

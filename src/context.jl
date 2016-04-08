@@ -97,7 +97,8 @@ function stop(ctx::LoggerContext)
 end
 
 "Returns a logger from a logger context"
-function logger(ctx::LoggerContext, name::AbstractString, msgfactory)
+function logger(ctx::LoggerContext, name::AbstractString,
+                msgfactory::DataType=LOG4JL_DEFAULT_MESSAGE)
     # return logger in exists
     name in ctx && return ctx.loggers[name]
 
@@ -111,4 +112,4 @@ end
 loggers(ctx::LoggerContext) = values(ctx.loggers)
 
 "Checks if a logger with the specified name exists."
-in(name::AbstractString, ctx::LoggerContext) = name in keys(ctx.loggers)
+in(name::AbstractString, ctx::LoggerContext) = haskey(ctx.loggers, name)

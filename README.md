@@ -103,7 +103,7 @@ Macro `@Log4jl.logger` creates logger instance. It accepts following parameters:
 1. `name`: a string which specifies a logger name from a configuration
 2. `MSG=<message_type>`: a message type used for configuring a logger
 3. `URI=<config_location>`: a configuration location
-4. `begin <configuration> end`: a configuration program (must return `Configuration` object)
+4. `begin <configuration> end`: a configuration program block (must return `Configuration` object)
 
 If the root logger is required use macro `Log4jl.rootlogger` with the same parameters as for `Log4jl.logger` with one exception: root logger does not have a name.
 
