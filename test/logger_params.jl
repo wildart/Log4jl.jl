@@ -1,4 +1,4 @@
-module TextLogger
+module TestLoggerParams
 
 using Log4jl
 using FactCheck
@@ -17,7 +17,7 @@ macro rootlogger(params...)
     :(@logger $(Log4jl.ROOT_LOGGER_NAME) $(params...))
 end
 
-facts("Macro `logger` accepts") do
+facts("Parameter parser of `logger` macro") do
     context("no parameters") do
         res = @logger
         @fact res[1] --> cmname
