@@ -26,18 +26,18 @@ type DefaultConfiguration <: Configuration
     name::AbstractString
     source::AbstractString
     state::LifeCycle.State
+    root::LoggerConfig
 
     properties::PROPERTIES
     appenders::APPENDERS
     loggers::LOGCONFIGS
-    root::LoggerConfig
 
     DefaultConfiguration() =
-        new("Default", "", LifeCycle.INITIALIZED, PROPERTIES(), APPENDERS(), LOGCONFIGS(), LoggerConfig())
+        new("Default", "", LifeCycle.INITIALIZED, LoggerConfig(), PROPERTIES(), APPENDERS(), LOGCONFIGS())
 end
 appender(cfg::DefaultConfiguration, name::AbstractString) = get(cfg.appenders, name, nothing)
 appenders(cfg::DefaultConfiguration) = cfg.appenders
-logger(cfg::DefaultConfiguration, name::AbstractString) = logger(cfg.loggers, name, cfg.root)
+# logger(cfg::DefaultConfiguration, name::AbstractString) = logger(cfg.loggers, name, cfg.root)
 loggers(cfg::DefaultConfiguration) = cfg.loggers
 
 function setup(cfg::DefaultConfiguration)

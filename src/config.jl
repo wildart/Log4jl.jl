@@ -8,7 +8,7 @@ function start(cfg::Configuration)
     setup(cfg)
     configure(cfg)
 
-    #TODO: start loggers' filters
+    #TODO: start loggers, it's needed for filters
     # for l in values(loggers(cfg))
     #     start(l)
     # end
@@ -18,7 +18,7 @@ function start(cfg::Configuration)
         start(apnd)
     end
 
-    # start(root)
+    # start(root) #TODO: start root it's needed for filters
 
     state!(cfg, LifeCycle.STARTED)
     debug(LOGGER, "Started configuration $cfg OK.")
@@ -28,7 +28,6 @@ end
 function stop(cfg::Configuration)
     state!(cfg, LifeCycle.STOPPING)
     trace(LOGGER, "Stopping $(cfg)...")
-    #TODO: stop loggers' filters
 
     # stop appenders
     c = 0
@@ -40,14 +39,41 @@ function stop(cfg::Configuration)
     end
     trace(LOGGER, "Stopped $c appenders in $(cfg)")
 
+    #TODO: stop loggers' filters
+    c = 0
+    # for lc in values(loggers(cfg))
+    #     stop(lc)
+    #     c+=1
+    # end
+    trace(LOGGER, "Stopped $c loggers in $(cfg)")
+
+    # stop(root) #TODO: stop root, it's needed for filters
+
     state!(cfg, LifeCycle.STOPPED)
     trace(LOGGER, "Stopped $(cfg)")
+end
+
+
+"""Locates the appropriate `LoggerConfig` for a specified name.
+
+ This will remove tokens from the name as necessary or return the root `LoggerConfig` if no other matches were found.
+"""
+function logger(cfg::Configuration, lcname::AbstractString)
+    lgrs = loggers(cfg)
+    trace(LOGGER, :CFG_LOGGER, "$lcname => $lgrs")
+    haskey(lgrs, lcname) && return lgrs[lcname]
+    lcpname = lcname
+    while (pos = rsearch(lcpname, '.') ) != 0
+        lcpname = lcpname[1:pos-1]
+        haskey(lgrs, lcpname) && return lgrs[lcpname]
+    end
+    return root(cfg)
 end
 
 "Add explicitly a `LoggerConfig` to the configuration."
 function logger!(cfg::Configuration, lcname::AbstractString, lc::LoggerConfig)
     if isdefined(cfg, :loggers) && isa(cfg.loggers, LOGCONFIGS)
-        cfg.loggers[nm] = lc
+        cfg.loggers[lcname] = lc
         return lc
     else
         error(LOGGER, "Configuration does not have `loggers` field of type $LOGCONFIGS")
@@ -56,9 +82,9 @@ function logger!(cfg::Configuration, lcname::AbstractString, lc::LoggerConfig)
 end
 
 "Add explicitly an appender to the configuration."
-function appender!(cfg::Configuration, nm::AbstractString, apnd::Appender)
+function appender!(cfg::Configuration, apndname::AbstractString, apnd::Appender)
     if isdefined(cfg, :appenders) && isa(cfg.appenders, APPENDERS)
-        cfg.appenders[nm] = apnd
+        cfg.appenders[apndname] = apnd
         return apnd
     else
         error(LOGGER, "Configuration does not have `appenders` field of type $APPENDERS")
@@ -100,11 +126,10 @@ function parents!(cfg::Configuration)
             parent = logger(cfg, lname[1:i-1])
             parent!(lc, parent)
         else
-            parent!(lc, cfg.root)
+            parent!(lc, root(cfg))
         end
     end
 end
-
 
 # Some configuration implementations
 include("config/default.jl")

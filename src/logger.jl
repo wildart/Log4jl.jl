@@ -1,7 +1,7 @@
 "Main logging function"
 function log(lgr::AbstractLogger, fqmn, level, marker, msg, params...)
     if isenabled(lgr, level, marker, msg, params...)
-        log(lgr, fqmn, level, marker, call(message(lgr), msg, params...))
+        log(lgr, fqmn, level, marker, message(lgr)(msg, params...))
     end
     return
 end

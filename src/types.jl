@@ -182,6 +182,9 @@ name(cfg::Configuration) = isdefined(cfg, :name) ? cfg.name : throw(AssertionErr
 "Returns the source of this configuration"
 source(cfg::Configuration) = isdefined(cfg, :source) ? cfg.source : throw(AssertionError("Define field 'source' in type $(typeof(cfg))"))
 
+"Returns the root logger configuration"
+root(cfg::Configuration) = isdefined(cfg, :root) ? cfg.root : throw(AssertionError("Define field 'root' in type $(typeof(cfg))"))
+
 "Returns  the appropriate `LoggerConfig` for a `Logger` name"
 logger(cfg::Configuration, name::AbstractString) = throw(AssertionError("Function 'logger' is not implemented for type $(typeof(cfg))"))
 

@@ -28,7 +28,6 @@ function setconfig!(ctx::LoggerContext, cfg::Configuration)
     start(cfg)
     ctx.config = cfg
     ctx.configLocation = source(cfg)
-    #TODO: updateloggers()
     prevcfg !== nothing && stop(prevcfg)
 
     return prevcfg
@@ -89,27 +88,26 @@ function stop(ctx::LoggerContext)
 
     prevcfg = ctx.config
     ctx.config = NullConfiguration()
-    #TODO: updateloggers()
     stop(prevcfg)
 
     state!(ctx, LifeCycle.STOPPED)
     debug(LOGGER, "Stopped LoggerContext[name=$(ctx.name), state=$(string(state(ctx)))].")
 end
 
+"Checks if a logger with the specified name exists."
+in(lname::AbstractString, ctx::LoggerContext) = haskey(ctx.loggers, lname)
+
 "Returns a logger from a logger context"
-function logger(ctx::LoggerContext, name::AbstractString,
+function logger(ctx::LoggerContext, lname::AbstractString,
                 msgfactory::DataType=LOG4JL_DEFAULT_MESSAGE)
     # return logger in exists
-    name in ctx && return ctx.loggers[name]
+    lname in ctx && return ctx.loggers[lname]
 
     # otherwise create new logger and return it
-    lgr = Logger(name, msgfactory, logger(ctx.config, name))
-    ctx.loggers[name] = lgr
+    lgr = Logger(lname, msgfactory, logger(ctx.config, lname))
+    ctx.loggers[lname] = lgr
     return lgr
 end
 
 "Returns all loggers."
 loggers(ctx::LoggerContext) = values(ctx.loggers)
-
-"Checks if a logger with the specified name exists."
-in(name::AbstractString, ctx::LoggerContext) = haskey(ctx.loggers, name)

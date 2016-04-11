@@ -3,11 +3,11 @@ type YamlConfiguration <: Configuration
     name::AbstractString
     source::AbstractString
     state::LifeCycle.State
+    root::LoggerConfig
 
     properties::PROPERTIES
     appenders::APPENDERS
     loggers::LOGCONFIGS
-    root::LoggerConfig
     #customLevels
 
     data::Dict # Configuration data
@@ -31,15 +31,15 @@ function YamlConfiguration(cfgloc::AbstractString, cfgname::AbstractString="YAML
         error(LOGGER, "Malformed configuration: `configuration` node does not exist.")
     end
 
-    YamlConfiguration(cfgname, cfgloc, LifeCycle.INITIALIZED,
-                      PROPERTIES(), APPENDERS(), LOGCONFIGS(), LoggerConfig(),
+    YamlConfiguration(cfgname, cfgloc, LifeCycle.INITIALIZED, LoggerConfig(),
+                      PROPERTIES(), APPENDERS(), LOGCONFIGS(),
                       conf)
 end
 getconfig(::Type{YamlConfiguration}, cfgloc::AbstractString, cfgname::AbstractString="YAML") = YamlConfiguration(cfgloc, cfgname)
 
 appender(cfg::YamlConfiguration, name::AbstractString) = get(cfg.appenders, name, nothing)
 appenders(cfg::YamlConfiguration) = cfg.appenders
-logger(cfg::YamlConfiguration, name::AbstractString) = logger(cfg.loggers, name, cfg.root)
+# logger(cfg::YamlConfiguration, name::AbstractString) = logger(cfg.loggers, name, cfg.root)
 loggers(cfg::YamlConfiguration) = cfg.loggers
 
 function setup(cfg::YamlConfiguration)
@@ -106,7 +106,7 @@ function configure(cfg::YamlConfiguration)
                 push!(refs, Dict("name"=>"root", "appenderref" => rconf["appenderref"]))
             end
         else
-            LOGGER.warn("No Root logger was configured, creating default ERROR-level Root logger with Console appender")
+            warn(LOGGER, "No Root logger was configured, creating default ERROR-level Root logger with Console appender")
             default!(cfg)
         end
 
@@ -116,7 +116,7 @@ function configure(cfg::YamlConfiguration)
                 lcname = lcconf["name"]
                 lcadd = get(lcconf, "additivity", true)
                 lclvl = configlevel(lcconf)
-                cfg.loggers[lcname] = LoggerConfig(lcname, lclvl, lcadd)
+                logger!(cfg, lcname, LoggerConfig(lcname, lclvl, lcadd))
             end
             append!(refs, lconf["logger"])
         end

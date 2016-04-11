@@ -36,6 +36,7 @@ module Appenders
         level::Level.EventLevel
         filter::FILTER
     end
+    show(io::IO, ref::Reference) = print(io, "Ref[$(name(ref.appender)):$(ref.level)]")
 
     "Logs event to the referenced appender"
     function append!(ref::Reference, evnt::Event)

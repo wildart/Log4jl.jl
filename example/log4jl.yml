@@ -19,7 +19,7 @@ configuration:
       PatternLayout:
         pattern: "%D %5p %C [%t] %u %l %r %m%n"
     List:
-      name: List
+      name: LIST
       filters:
         ThresholdFilter:
           level: error
@@ -31,7 +31,10 @@ configuration:
         level: debug
         additivity: false
         appenderref:
-          ref: STDOUT
+          -
+            ref: STDOUT
+          -
+            ref: LIST
       -
         name: Log4jlExample
         level: debug

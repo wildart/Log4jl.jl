@@ -3,7 +3,7 @@ module TestConfig
 using ..Fixtures
 using FactCheck
 using Log4jl
-import Log4jl: Configuration, name, source, logger, loggers, default!,
+import Log4jl: Configuration, name, source, logger, loggers, default!, root,
                appender, appenders, appender!, state, setup, configure,
                LoggerConfig, level, level!, isadditive, references, reference!
 
@@ -14,6 +14,7 @@ facts("Configurations") do
         cfg = Fixtures.InvalidConfiguration()
         @fact_throws AssertionError name(cfg)
         @fact_throws AssertionError source(cfg)
+        @fact_throws AssertionError root(cfg)
         @fact_throws AssertionError logger(cfg, Fixtures.TESTNAME)
         @fact_throws AssertionError loggers(cfg)
         @fact_throws AssertionError appender(cfg, Fixtures.TESTNAME)
@@ -25,7 +26,8 @@ facts("Configurations") do
         cfg = Log4jl.NullConfiguration()
         @fact name(cfg) --> "Null"
         @fact source(cfg) --> isempty
-        @fact logger(cfg, Fixtures.TESTNAME) --> cfg.root
+        @fact isa(root(cfg), Log4jl.LoggerConfig) --> true
+        @fact logger(cfg, Fixtures.TESTNAME) --> root(cfg)
         @fact loggers(cfg) --> isempty
         @fact appender(cfg, Fixtures.TESTNAME) --> nothing
         @fact appenders(cfg) --> isempty
@@ -52,8 +54,9 @@ facts("Configurations") do
         cfg = Log4jl.DefaultConfiguration()
         @fact name(cfg) --> "Default"
         @fact source(cfg) --> isempty
+        @fact isa(root(cfg), Log4jl.LoggerConfig) --> true
         context("with default parameters when not started") do
-            @fact logger(cfg, Fixtures.TESTNAME) --> cfg.root
+            @fact logger(cfg, Fixtures.TESTNAME) --> root(cfg)
             @fact loggers(cfg) --> isempty
             @fact appenders(cfg) --> isempty
             @fact state(cfg) --> Log4jl.LifeCycle.INITIALIZED
@@ -70,7 +73,7 @@ facts("Configurations") do
             @fact length(loggers(cfg)) --> 0
             lgrcfg = logger(cfg, "Default")
             @fact isa(lgrcfg, Log4jl.LoggerConfig) --> true
-            @fact lgrcfg --> cfg.root
+            @fact lgrcfg --> root(cfg)
 
             apnds = appenders(cfg) |> values
             @fact length(apnds) --> greater_than(0)

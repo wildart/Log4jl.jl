@@ -34,7 +34,7 @@ function List(config::Dict)
     nl = get(config, "newline", false)
     List(nm, LAYOUT(lyt), raw=raw, newline=nl)
 end
-show(io::IO, apnd::List) = print(io, "List($(apnd.state))")
+show(io::IO, apnd::List) = print(io, "List["* (isnull(apnd.layout) ? "evnts=$(length(apnd.events))" : "msgs=$(length(apnd.messages))")*", state=$(apnd.state))")
 name(apnd::List) = isempty(apnd.name) ? string(typeof(apnd)) : apnd.name
 layout(apnd::List) = apnd.layout
 
