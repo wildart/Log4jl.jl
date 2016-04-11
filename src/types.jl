@@ -30,11 +30,11 @@ start{T<:LifeCycle.Object}(lc::T) = throw(AssertionError("Function 'start' is no
 stop{T<:LifeCycle.Object}(lc::T) = throw(AssertionError("Function 'stop' is not implemented for type $(typeof(lc))"))
 
 "Returns a life cycle state"
-state{T<:LifeCycle.Object}(lc::T) = isdefined(lc, :state) ? lc.state : throw(AssertionError("Field 'state' is not defined in type $(typeof(evnt))"))
+state{T<:LifeCycle.Object}(lc::T) = isdefined(lc, :state) ? lc.state : throw(AssertionError("Field 'state' is not defined in type $(typeof(lc))"))
 #state{T<:LifeCycle.Object}(lc::T) = throw(AssertionError("Function 'state' is not implemented for type $(typeof(lc))"))
 
 "Sets a life cycle state"
-state!{T<:LifeCycle.Object}(lc::T, st::LifeCycle.State) = isdefined(lc, :state) ? (lc.state = st) : throw(AssertionError("Field 'state' is not defined in type $(typeof(evnt))"))
+state!{T<:LifeCycle.Object}(lc::T, st::LifeCycle.State) = isdefined(lc, :state) ? (lc.state = st) : throw(AssertionError("Field 'state' is not defined in type $(typeof(lc))"))
 #state!{T<:LifeCycle.Object}(lc::T, st::LifeCycle.State) = throw(AssertionError("Function 'state!' is not implemented for type $(typeof(lc))"))
 
 
@@ -132,12 +132,13 @@ string(lyt::LAYOUT, evnt::Event) = !isnull(lyt) ? string(get(lyt), evnt) : "No l
 Any appender implementation must have two fields:
 
 - `name`::AbstractString - appender name for reference
-- `layout`::Nullable{Layout} - layout object for output modification
+- `layout`::Nullable{`Layout`} - layout object for output modification
 
 In addition to basic fields, every appender should have a method `append!`:
-* append!(apnd::Appender, evnt::Event) - appends event
 
-*Note:* All derived types should have a constructor which accepts `Dict{Any,Any}` object as a parameter.
+- append!(apnd::`Appender`, evnt::`Event`) - appends event
+
+*Note:* All derived types should have a constructor which accepts `Dict{Symbol,Any}` object as a parameter.
 Passed dictionary object should contain various initialization parameters. One of the parameters should have a key `:layout` with `Layout` object as its value.
 """
 abstract Appender <: LifeCycle.Object
@@ -161,6 +162,7 @@ Any configuration type implementation must have two fields:
 - `name`::AbstractString, the configuration name for a reference
 - `source`::AbstractString, a source of the configuration
 - `state`::LifeCycle.Object, a life cycle state
+- `root`::LoggerConfig, the root logger configuration
 
 Any configuration must implement following set of methods:
 
@@ -183,14 +185,17 @@ source(cfg::Configuration) = isdefined(cfg, :source) ? cfg.source : throw(Assert
 "Returns  the appropriate `LoggerConfig` for a `Logger` name"
 logger(cfg::Configuration, name::AbstractString) = throw(AssertionError("Function 'logger' is not implemented for type $(typeof(cfg))"))
 
-"Returns  `Appender`  with the specified `name`"
-appender(cfg::Configuration, name::AbstractString) = throw(AssertionError("Function 'appender' is not implemented for type $(typeof(cfg))"))
-
 "Return a list of `Logger`s from the configuration"
 loggers(cfg::Configuration) = throw(AssertionError("Function 'loggers' is not implemented for type $(typeof(cfg))"))
 
+"Returns  `Appender`  with the specified `name`"
+appender(cfg::Configuration, name::AbstractString) = throw(AssertionError("Function 'appender' is not implemented for type $(typeof(cfg))"))
+
 "Return a list of `Appender`s from the configuration"
 appenders(cfg::Configuration) = throw(AssertionError("Function 'appenders' is not implemented for type $(typeof(cfg))"))
+
+"Register `Appender` in the `Configuration` with the specified `name`"
+appender!(cfg::Configuration, name::AbstractString, apnd::Appender) = throw(AssertionError("Function 'appender!' is not implemented for type $(typeof(cfg))"))
 
 
 """

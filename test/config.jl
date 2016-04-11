@@ -3,7 +3,7 @@ module TestConfig
 using ..Fixtures
 using FactCheck
 using Log4jl
-import Log4jl: Configuration, name, source, logger, loggers,
+import Log4jl: Configuration, name, source, logger, loggers, default!,
                appender, appenders, appender!, state, setup, configure,
                LoggerConfig, level, level!, isadditive, references, reference!
 
@@ -82,6 +82,16 @@ facts("Configurations") do
             @fact isa(first(apndrefs), Log4jl.Appenders.Reference) --> true
             @fact first(apnds) --> first(apndrefs).appender
         end
+
+    end
+    context("have a root logger which can be setup by calling `default!` function") do
+        cfg = Log4jl.DefaultConfiguration()
+        @fact length(appenders(cfg)) --> 0
+        @fact length(loggers(cfg)) --> 0
+        apndref = default!(cfg)
+        @fact length(appenders(cfg)) --> greater_than(0)
+        @fact isa(apndref, Log4jl.Appenders.Reference) --> true
+        @fact appenders(cfg)["Default"] --> apndref.appender
     end
 end
 

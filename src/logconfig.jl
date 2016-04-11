@@ -56,9 +56,35 @@ function isenabled(lc::LoggerConfig, lvl, marker, msg, params...)
     return true
 end
 
+"Returns all appender references"
+references(lc::LoggerConfig) = values(lc.appenders)
+
 "Adds an appender reference to configuration"
-function reference(lc::LoggerConfig, apndr::Appender, lvl::LEVEL=LEVEL(), filter::FILTER=FILTER())
+function reference!(lc::LoggerConfig, apndr::Appender, lvl::LEVEL=LEVEL(), filter::FILTER=FILTER())
     apn = name(apndr)
     lvl = get(lvl, Level.ALL)
-    lc.appenders[apn] = Appenders.Reference(apndr, lvl, filter)
+    apndref = Appenders.Reference(apndr, lvl, filter)
+    lc.appenders[apn] = apndref
+    return apndref
 end
+
+"""Locates the appropriate `LoggerConfig` for a `Logger` name.
+
+ This will remove tokens from the name as necessary or return the root `LoggerConfig` if no other matches were found.
+"""
+function logger(loggers::LOGCONFIGS, name::AbstractString, root::LoggerConfig)
+    name in keys(loggers) && return loggers[name]
+    pname = name
+    while (pos = rsearch(pname, '.') ) != 0
+        pname = pname[1:pos-1]
+        pname in keys(loggers) && return loggers[pname]
+    end
+    return root
+end
+
+"Return parent logger configuration"
+parent(lc::LoggerConfig) = lc.parent
+
+"Set parent logger configuration"
+parent!(lc::LoggerConfig, parent::Nullable{LoggerConfig}) = (lc.parent = parent)
+parent!(lc::LoggerConfig, parent::LoggerConfig) = parent!(lc, Nullable(parent))

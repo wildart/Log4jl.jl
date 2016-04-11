@@ -136,7 +136,7 @@ function configure(cfg::YamlConfiguration)
                 aref = lcconf_aref["ref"]
                 if haskey(cfg.appenders, aref)
                     apnd = cfg.appenders[aref]
-                    reference(lc, apnd, configlevel(lcconf_aref))
+                    reference!(lc, apnd, configlevel(lcconf_aref))
                 else
                     error(LOGGER, "Unable to locate appender '$aref' for logger '$lcname'")
                 end
@@ -162,29 +162,4 @@ function subst_value(conf::Dict, k::AbstractString, v::AbstractString)
         end
     end
     return conf
-end
-
-#TODO: reduce duplication between this method and DefaultConfiguration
-function default!(cfg::YamlConfiguration)
-    cfg.appenders["STDOUT"] = Appenders.ColorConsole(
-        Dict(
-            :layout => Layouts.BasicLayout()
-        )
-    )
-    reference(cfg.root, cfg.appenders["STDOUT"])
-end
-
-
-#TODO: reduce duplication between this method and other configurations
-function parents!(cfg::YamlConfiguration)
-    for l in values(cfg.loggers)
-        lname = name(l)
-        i = rsearch(lname, '.')
-        if i > 0
-            parent = logger(cfg, lname[1:i-1])
-            l.parent = Nullable(parent)
-        else
-            l.parent = Nullable(cfg.root)
-        end
-    end
 end

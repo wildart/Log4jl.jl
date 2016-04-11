@@ -1,5 +1,6 @@
 # Abstract methods
 
+"Initialize the configuration."
 function start(cfg::Configuration)
     debug(LOGGER, "Starting configuration $cfg")
     state!(cfg, LifeCycle.STARTING)
@@ -13,8 +14,8 @@ function start(cfg::Configuration)
     # end
 
     # Start all appenders
-    for a in values(appenders(cfg))
-        start(a)
+    for apnd in values(appenders(cfg))
+        start(apnd)
     end
 
     # start(root)
@@ -23,6 +24,7 @@ function start(cfg::Configuration)
     debug(LOGGER, "Started configuration $cfg OK.")
 end
 
+"Shutdown the configuration."
 function stop(cfg::Configuration)
     state!(cfg, LifeCycle.STOPPING)
     trace(LOGGER, "Stopping $(cfg)...")
@@ -30,9 +32,9 @@ function stop(cfg::Configuration)
 
     # stop appenders
     c = 0
-    for a in values(appenders(cfg))
-        if state(a) == LifeCycle.STARTED
-            stop(a)
+    for apnd in values(appenders(cfg))
+        if state(apnd) == LifeCycle.STARTED
+            stop(apnd)
             c+=1
         end
     end
@@ -42,19 +44,65 @@ function stop(cfg::Configuration)
     trace(LOGGER, "Stopped $(cfg)")
 end
 
-
-"""Locates the appropriate `LoggerConfig` for a `Logger` name.
-
- This will remove tokens from the name as necessary or return the root `LoggerConfig` if no other matches were found.
-"""
-function logger(loggers::LOGCONFIGS, name::AbstractString, root::LoggerConfig)
-    name in keys(loggers) && return loggers[name]
-    pname = name
-    while (pos = rsearch(pname, '.') ) != 0
-        pname = pname[1:pos-1]
-        pname in keys(loggers) && return loggers[pname]
+"Add explicitly a `LoggerConfig` to the configuration."
+function logger!(cfg::Configuration, lcname::AbstractString, lc::LoggerConfig)
+    if isdefined(cfg, :loggers) && isa(cfg.loggers, LOGCONFIGS)
+        cfg.loggers[nm] = lc
+        return lc
+    else
+        error(LOGGER, "Configuration does not have `loggers` field of type $LOGCONFIGS")
+        return nothing
     end
-    return root
+end
+
+"Add explicitly an appender to the configuration."
+function appender!(cfg::Configuration, nm::AbstractString, apnd::Appender)
+    if isdefined(cfg, :appenders) && isa(cfg.appenders, APPENDERS)
+        cfg.appenders[nm] = apnd
+        return apnd
+    else
+        error(LOGGER, "Configuration does not have `appenders` field of type $APPENDERS")
+        return nothing
+    end
+end
+
+"Add an appender to the configuration as a kw pair."
+function appender!(cfg::Configuration; kwargs...)
+    for (k,w) in kwargs
+        if isa(w, Appender)
+            appender!(cfg, string(k), w)
+        else
+            error(LOGGER, "Invalid appender: $k")
+        end
+    end
+end
+
+"Cross-reference a logger configuration with an appender in the configuration."
+function reference!(cfg::Configuration, lcname::AbstractString, apndname::AbstractString)
+    logcfg = logger(cfg, lcname)
+    apnd = appender(cfg, apndname)
+    apnd === nothing && return nothing
+    return reference!(logcfg, apnd)
+end
+
+"Set a default configuration (i.e. the root logger is set with the console appender)."
+function default!(cfg::Configuration)
+    appender!(cfg, Default = Appenders.Console(layout = Layouts.BasicLayout()))
+    return reference!(cfg, ROOT_LOGGER_NAME, "Default")
+end
+
+"Build logger configuration hierarchy"
+function parents!(cfg::Configuration)
+    for (lcname,lc) in loggers(cfg)
+        lname = name(lc)
+        i = rsearch(lname, '.')
+        if i > 0
+            parent = logger(cfg, lname[1:i-1])
+            parent!(lc, parent)
+        else
+            parent!(lc, cfg.root)
+        end
+    end
 end
 
 

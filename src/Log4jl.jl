@@ -33,7 +33,7 @@ include("selector.jl")
 
 # Constants
 const LOG4JL_DEFAULT_MESSAGE = Messages.ParameterizedMessage
-const ROOT_LOGGER_NAME = NAME()
+const ROOT_LOGGER_NAME = ""
 
 # Logger methods
 for (fn,lvl) in ((:trace, Level.TRACE),
@@ -65,18 +65,16 @@ end
 
 
 "`logger` macro parameters parser"
-function parseargs(params, dn, df=LOG4JL_DEFAULT_MESSAGE)
+function parseargs(params, cmname, defmsg=LOG4JL_DEFAULT_MESSAGE)
     config_eval = Nullable{Expr}()
-    name = dn
-    msgfactory = :($df)
+    name = cmname
+    msgfactory = :($defmsg)
     config_file = Nullable{AbstractString}()
 
     length(params) > 0 && for p in params
         trace(LOGGER, "Logger parameter: $p, $(typeof(p))")
         if isa(p, AbstractString)
             name = p
-        elseif isa(p, Nullable)
-            name = get(p, "")
         elseif isa(p, Expr) && p.head == :block
             config_eval = Nullable(p)
         elseif isa(p, Expr) && (p.head == :(=) || p.head ==:kw)
@@ -148,6 +146,13 @@ function getcontext(ctxname::AbstractString;
     end
 
     return ctx
+end
+
+"Shutdown logging system by stopping all logger contexts"
+function shutdown()
+    for (ctxname, ctx) in Log4jl.contexts(Log4jl.LOG4JL_CONTEXT_SELECTOR)
+        stop(ctx)
+    end
 end
 
 function __init__()

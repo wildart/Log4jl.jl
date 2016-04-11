@@ -3,15 +3,16 @@ type NullConfiguration <: Configuration
     name::AbstractString
     source::AbstractString
     state::LifeCycle.State
-
     root::LoggerConfig
 
-    NullConfiguration(cfgloc::AbstractString="") = new("Null", cfgloc, LifeCycle.INITIALIZED, LoggerConfig(Level.OFF))
+    NullConfiguration() = new("Null", "", LifeCycle.INITIALIZED, LoggerConfig(Level.OFF))
 end
 appender(cfg::NullConfiguration, name::AbstractString) = nothing
 appenders(cfg::NullConfiguration) = APPENDERS()
-logger(cfg::NullConfiguration, name::AbstractString) = root
+appender!(cfg::NullConfiguration, nm::AbstractString, apnd::Appender) = nothing
+logger(cfg::NullConfiguration, name::AbstractString) = cfg.root
 loggers(cfg::NullConfiguration) = LOGCONFIGS()
+logger!(cfg::NullConfiguration, nm::AbstractString, lc::LoggerConfig) = nothing
 state(cfg::NullConfiguration) = LifeCycle.STOPPED
 setup(cfg::NullConfiguration) = nothing
 configure(cfg::NullConfiguration) = nothing
@@ -30,10 +31,9 @@ type DefaultConfiguration <: Configuration
     appenders::APPENDERS
     loggers::LOGCONFIGS
     root::LoggerConfig
-    #TODO: customLevels
 
-    DefaultConfiguration(cfgloc::AbstractString="") =
-        new("Default", cfgloc, LifeCycle.INITIALIZED, PROPERTIES(), APPENDERS(), LOGCONFIGS(), LoggerConfig())
+    DefaultConfiguration() =
+        new("Default", "", LifeCycle.INITIALIZED, PROPERTIES(), APPENDERS(), LOGCONFIGS(), LoggerConfig())
 end
 appender(cfg::DefaultConfiguration, name::AbstractString) = get(cfg.appenders, name, nothing)
 appenders(cfg::DefaultConfiguration) = cfg.appenders
@@ -41,16 +41,12 @@ logger(cfg::DefaultConfiguration, name::AbstractString) = logger(cfg.loggers, na
 loggers(cfg::DefaultConfiguration) = cfg.loggers
 
 function setup(cfg::DefaultConfiguration)
-    cfg.appenders["STDOUT"] = Appenders.ColorConsole(
-        Dict(
-            :layout => Layouts.BasicLayout()
-        )
-    )
+    appender!(cfg, Default = Appenders.Console(layout = Layouts.BasicLayout()))
 end
 
 function configure(cfg::DefaultConfiguration)
     # Reference appender to root configuration
-    reference(cfg.root, cfg.appenders["STDOUT"])
+    reference!(cfg, ROOT_LOGGER_NAME, "Default")
 end
 
 # Register configuration type

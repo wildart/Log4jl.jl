@@ -10,16 +10,17 @@ type Console <: Appender
 
     target::IO
 end
-function Console(name::AbstractString, lyt::LAYOUT=LAYOUT(), target::AbstractString="STDERR")
-    Console(name, lyt, LifeCycle.INITIALIZED, target == "STDOUT" ? STDOUT : STDERR)
+function Console(name::AbstractString="STDERR", lyt::LAYOUT=LAYOUT(), target::Symbol=:STDERR)
+    Console(name, lyt, LifeCycle.INITIALIZED, target == :STDOUT ? STDOUT : STDERR)
 end
-function Console(config::Dict)
-    io = get(config, "target", "STDERR")
-    nm = get(config, "name", "STDOUT")
+function Console(config::Dict{Symbol,Any})
+    io = get(config, :target, :STDERR)
+    nm = get(config, :name, "STDERR")
     lyt= get(config, :layout, nothing)
     Console(nm, LAYOUT(lyt), io)
 end
-Console() = Console("STDOUT")
+Console(;kwargs...) = Console(Dict{Symbol,Any}(kwargs))
+show(io::IO, apnd::Console) = print(io, "Console($(apnd.name))")
 
 name(apnd::Console) = isempty(apnd.name) ? string(typeof(apnd)) : apnd.name
 layout(apnd::Console) = apnd.layout
