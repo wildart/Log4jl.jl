@@ -28,13 +28,11 @@ module Log4jlExample
             using Log4jl
             const logger = @Log4jl.logger begin
                 dc = Log4jl.DefaultConfiguration()
-                dc.name ="TEST"
-                dc.appenders["STDOUT"] = Log4jl.Appenders.Console(Dict(
-                    :layout => Log4jl.Layouts.PatternLayout("%d{%Y-%m-%d %H:%M:%S} [%t] %-5p %l %c{3} - %m%n")
+                appender!(dc, STDOUT = Log4jl.Appenders.Console(
+                    layout = Log4jl.Layouts.PatternLayout("%d{%Y-%m-%d %H:%M:%S} [%t] %-5p %l %c{3} - %m%n")
                 ))
-                lc = Log4jl.LoggerConfig("Custom", Log4jl.Level.WARN)
-                reference(lc, dc.appenders["STDOUT"])
-                dc.loggers["Log4jlExample.Log4jlExample2.Log4jlExample3"] = lc
+                logger!(dc, "Log4jlExample.Log4jlExample2.Log4jlExample3", Log4jl.LoggerConfig("Custom", Log4jl.Level.WARN))
+                reference!(dc, "Log4jlExample.Log4jlExample2.Log4jlExample3", "STDOUT")
                 return dc
             end
 
@@ -82,8 +80,10 @@ println("Current:", current_module())
 println("Registered contexts:")
 for (ctxname, ctx) in Log4jl.contexts(Log4jl.LOG4JL_CONTEXT_SELECTOR)
     println("\t$ctxname => $ctx")
-    for lgrname in keys(ctx.loggers)
-        println("\t\t$lgrname => $(Log4jl.logger(ctx, lgrname))")
+    for (lgrname, lgr) in ctx.loggers
+        # lgr = Log4jl.logger(ctx, lgrname)
+        println("\t\t$lgrname => $lgr")
+        println("\t\t\t$(lgr.config)")
     end
 end
 println()
