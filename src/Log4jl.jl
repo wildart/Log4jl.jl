@@ -1,7 +1,8 @@
 module Log4jl
 
 export trace, debug, info, warn, error, fatal,
-       @trace, @debug, @info, @warn, @error, @fatal
+       # @trace, @debug, @info, @warn, @error, @fatal,
+       @logger, @Log4jl
 
 import Base: append!, serialize, show, in, delete!, string,
              trace, info, warn, error
@@ -43,26 +44,12 @@ for (fn,lvl) in ((:trace, Level.TRACE),
                  (:error, Level.ERROR),
                  (:fatal, Level.FATAL))
 
-    @eval $fn(l::AbstractLogger, fqmn::AbstractString, marker::MARKER, msg, params...) = log(l, fqmn, $lvl, marker, msg, params...)
-    @eval $fn(l::AbstractLogger, fqmn::AbstractString, marker::Symbol, msg, params...) = $fn(l, fqmn, MARKER(marker), msg, params...)
-    @eval $fn(l::AbstractLogger, fqmn::AbstractString, msg::AbstractString, params...) = $fn(l, fqmn, MARKER(), msg, params...)
-    @eval $fn(l::AbstractLogger, marker::MARKER, msg, params...) = $fn(l, string(current_module()), marker, msg, params...)
-    @eval $fn(l::AbstractLogger, marker::Symbol, msg, params...) = $fn(l, string(current_module()), MARKER(marker), msg, params...)
-    @eval $fn(l::AbstractLogger, msg, params...) = $fn(l, MARKER(), msg, params...)
-end
-
-# Logger macros (use `logger` constant to call logging methods)
-for fn in [:trace, :debug, :info, :warn, :error, :fatal]
-    @eval macro $fn(msg...)
-        # get current module `logger` constant
-        mod = current_module()
-        fcall = Expr(:call, esc($fn), esc(:logger), string(mod), msg...)
-        if isdefined(mod, :logger) && isconst(mod, :logger)
-            :($fcall)
-        end
+    @eval begin
+        $fn(l::AbstractLogger, marker::MARKER, msg, params...) = log(l, string(current_module()), $lvl, marker, msg, params...)
+        $fn(l::AbstractLogger, marker::Symbol, msg, params...) = log(l, string(current_module()), $lvl, MARKER(marker), msg, params...)
+        $fn(l::AbstractLogger, msg, params...)                 = log(l, string(current_module()), $lvl, MARKER(), msg, params...)
     end
 end
-
 
 "`logger` macro parameters parser"
 function parseargs(params, cmname, defmsg=LOG4JL_DEFAULT_MESSAGE)
@@ -121,6 +108,28 @@ macro rootlogger(params...)
     :(@logger $ROOT_LOGGER_NAME $(params...))
 end
 
+""" This macro is used to define logger macros for the specified logger: @info, @error, etc.
+
+Macro take a logger assignment expression and creates a variety of macros for the created logger.
+```julia
+    @Log4jl LOG = @logger # Create logger `LOG` and corresponding macros
+    @info "AAA"           # All calls will be made with `LOG` logger
+```
+"""
+macro Log4jl(expr)
+    lvar = expr.args[1]
+    rval = expr.args[2]
+    mod = current_module()
+    for fn in [:trace, :debug, :info, :warn, :error, :fatal]
+        eval(mod, :( macro $fn(msg...)
+            Expr(:call, esc($fn), $lvar, msg...)
+        end))
+    end
+    :(const $(esc(lvar)) = $rval)
+end
+
+
+"Return logging context by name"
 function getcontext(ctxname::AbstractString;
                     cfgloc::Nullable{AbstractString}=Nullable{AbstractString}(),
                     cfgexp::Nullable{Expr}=Nullable{Expr}())
