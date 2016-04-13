@@ -11,10 +11,10 @@ type Console <: Appender
     target::IO
 end
 function Console(config::Dict{Symbol,Any})
-    io = get(config, :target, :STDERR) 
     nm = get(config, :name, "STDERR")
-    lyt= get(config, :layout, LAYOUT())
-    Console(nm, lyt, LifeCycle.INITIALIZED, io == :STDOUT ? STDOUT : STDERR)
+    lyt= get(config, :layout, nothing)
+    io = get(config, :target, :STDERR)
+    Console(nm, LAYOUT(lyt), LifeCycle.INITIALIZED, io == :STDOUT ? STDOUT : STDERR)
 end
 Console(;kwargs...) = Console(Dict{Symbol,Any}(kwargs))
 show(io::IO, apnd::Console) = print(io, "Console($(apnd.name))")
