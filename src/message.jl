@@ -43,7 +43,7 @@ module Messages
             sformatted *= string(msg.params[i])
             sstart = send+3
         end
-        sformatted
+        sformatted * msg.pattern[sstart:end]
     end
     format(msg::ParameterizedMessage)     = msg.pattern
     parameters(msg::ParameterizedMessage) = msg.params
