@@ -1,6 +1,6 @@
 module Level
     @enum EventLevel ALL=0 TRACE=100 DEBUG=200 INFO=300 WARN=400 ERROR=500 FATAL=600 OFF=1000
-    Base.show(io::IO, level::EventLevel) = print(io, string(level))
+    # Base.show(io::IO, level::EventLevel) = print(io, string(level))
 end
 typealias LEVEL Nullable{Level.EventLevel}
 
@@ -185,9 +185,6 @@ source(cfg::Configuration) = isdefined(cfg, :source) ? cfg.source : throw(Assert
 "Returns the root logger configuration"
 root(cfg::Configuration) = isdefined(cfg, :root) ? cfg.root : throw(AssertionError("Define field 'root' in type $(typeof(cfg))"))
 
-"Returns  the appropriate `LoggerConfig` for a `Logger` name"
-logger(cfg::Configuration, name::AbstractString) = throw(AssertionError("Function 'logger' is not implemented for type $(typeof(cfg))"))
-
 "Return a list of `Logger`s from the configuration"
 loggers(cfg::Configuration) = throw(AssertionError("Function 'loggers' is not implemented for type $(typeof(cfg))"))
 
@@ -196,9 +193,6 @@ appender(cfg::Configuration, name::AbstractString) = throw(AssertionError("Funct
 
 "Return a list of `Appender`s from the configuration"
 appenders(cfg::Configuration) = throw(AssertionError("Function 'appenders' is not implemented for type $(typeof(cfg))"))
-
-"Register `Appender` in the `Configuration` with the specified `name`"
-appender!(cfg::Configuration, name::AbstractString, apnd::Appender) = throw(AssertionError("Function 'appender!' is not implemented for type $(typeof(cfg))"))
 
 
 """

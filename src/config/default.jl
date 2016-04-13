@@ -37,16 +37,14 @@ type DefaultConfiguration <: Configuration
 end
 appender(cfg::DefaultConfiguration, name::AbstractString) = get(cfg.appenders, name, nothing)
 appenders(cfg::DefaultConfiguration) = cfg.appenders
-# logger(cfg::DefaultConfiguration, name::AbstractString) = logger(cfg.loggers, name, cfg.root)
 loggers(cfg::DefaultConfiguration) = cfg.loggers
 
-function setup(cfg::DefaultConfiguration)
-    appender!(cfg, Default = Appenders.Console(layout = Layouts.BasicLayout()))
-end
-
 function configure(cfg::DefaultConfiguration)
+    # Add basic console appender
+    appender!(cfg, Default = Appenders.Console(layout = Layouts.BasicLayout()))
+
     # Reference appender to root configuration
-    reference!(cfg, ROOT_LOGGER_NAME, "Default")
+    reference!(cfg, ROOT_LOGGER_NAME => "Default")
 end
 
 # Register configuration type

@@ -5,7 +5,6 @@ function start(cfg::Configuration)
     debug(LOGGER, "Starting configuration $cfg")
     state!(cfg, LifeCycle.STARTING)
 
-    setup(cfg)
     configure(cfg)
 
     #TODO: start loggers, it's needed for filters
@@ -60,7 +59,6 @@ end
 """
 function logger(cfg::Configuration, lcname::AbstractString)
     lgrs = loggers(cfg)
-    trace(LOGGER, :CFG_LOGGER, "$lcname => $lgrs")
     haskey(lgrs, lcname) && return lgrs[lcname]
     lcpname = lcname
     while (pos = rsearch(lcpname, '.') ) != 0
@@ -79,6 +77,12 @@ function logger!(cfg::Configuration, lcname::AbstractString, lc::LoggerConfig)
         error(LOGGER, "Configuration does not have `loggers` field of type $LOGCONFIGS")
         return nothing
     end
+end
+
+function logger!(cfg::Configuration, lcname::AbstractString,
+                 lvl::Level.EventLevel = Level.ALL, additive::Bool = true)
+    lc = LoggerConfig(lcname, lvl, additive)
+    return logger!(cfg, lcname, lc)
 end
 
 "Add explicitly an appender to the configuration."
@@ -104,9 +108,9 @@ function appender!(cfg::Configuration; kwargs...)
 end
 
 "Cross-reference a logger configuration with an appender in the configuration."
-function reference!(cfg::Configuration, lcname::AbstractString, apndname::AbstractString)
-    logcfg = logger(cfg, lcname)
-    apnd = appender(cfg, apndname)
+function reference!{T<:AbstractString}(cfg::Configuration, refcfg::Pair{T,T})
+    logcfg = logger(cfg, refcfg[1])
+    apnd = appender(cfg, refcfg[2])
     apnd === nothing && return nothing
     return reference!(logcfg, apnd)
 end
@@ -114,7 +118,7 @@ end
 "Set a default configuration (i.e. the root logger is set with the console appender)."
 function default!(cfg::Configuration)
     appender!(cfg, Default = Appenders.Console(layout = Layouts.BasicLayout()))
-    return reference!(cfg, ROOT_LOGGER_NAME, "Default")
+    return reference!(cfg, ROOT_LOGGER_NAME => "Default")
 end
 
 "Build logger configuration hierarchy"

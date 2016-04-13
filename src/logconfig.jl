@@ -44,7 +44,7 @@ function log(lc::LoggerConfig, evnt::Event)
     lc.additive && !isnull(lc.parent) && log(get(lc.parent), evnt)
 end
 function log(lc::LoggerConfig, logger, fqmn, level, marker, msg)
-    log(lc, call(LOG4JL_LOG_EVENT, logger, fqmn, marker, level, msg)) #TODO: properties
+    log(lc, LOG4JL_LOG_EVENT(logger, fqmn, marker, level, msg)) #TODO: properties
 end
 
 show(io::IO, lc::LoggerConfig) = print(io, "LoggerConfig(", isempty(lc.name) ? "root" : lc.name, ":", level(lc) , ")")

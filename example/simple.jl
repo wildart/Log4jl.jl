@@ -8,32 +8,37 @@ Run example with elevated log level:
     >LOG4JL_DEFAULT_STATUS_LEVEL=ALL julia simple.jl
 
 ==#
-module Log4jlExample
+module X
     println("Current:", current_module())
     # println("Current:", module_parent(current_module()))
 
     using Log4jl
-    const logger = @Log4jl.logger
+    @Log4jl logger = @Log4jl.logger
 
-    module Log4jlExample2
+    module Y
         println("Current:", current_module())
 
         using Log4jl
-        const logger = @Log4jl.logger URI="log4jl.json"
+        @Log4jl logger = @Log4jl.logger URI="log4jl.json"
         Log4jl.level!(logger, Log4jl.Level.WARN)
 
-        module Log4jlExample3
+        module Z
             println("Current:", current_module())
 
             using Log4jl
-            const logger = @Log4jl.logger "CUSTOM" begin
-                dc = Log4jl.DefaultConfiguration()
-                appender!(dc, OUTPUT = Log4jl.Appenders.Console(
+            @Log4jl logger = @Log4jl.logger begin
+                # Create a configuration for the logger
+                cfg = Log4jl.DefaultConfiguration()
+                # Add an appender to the configuration
+                Log4jl.appender!(cfg, OUTPUT = Log4jl.Appenders.Console(
                     layout = Log4jl.Layouts.PatternLayout("%d{%Y-%m-%d %H:%M:%S} [%t] %-5p %l %c{3} - %m%n")
                 ))
-                logger!(dc, "CUSTOM", Log4jl.LoggerConfig("LWC", Log4jl.Level.WARN))
-                reference!(dc, "CUSTOM", "OUTPUT")
-                return dc
+                # Add logger configuration with the name of the logger (i.e. "X.Y.Z")
+                #Log4jl.logger!(cfg, "X.Y.Z", Log4jl.LoggerConfig("LWC", Log4jl.Level.WARN))
+                Log4jl.logger!(cfg, "X.Y.Z", Log4jl.Level.WARN)
+                # Reference the appender in the logger configuration
+                Log4jl.reference!(cfg, "X.Y.Z" => "OUTPUT")
+                return cfg
             end
 
             println(logger)
@@ -49,7 +54,7 @@ module Log4jlExample
         end
 
         function test_log2()
-            Log4jlExample2.Log4jlExample3.test_log3()
+            Y.Z.test_log3()
 
             @trace "L2: AAA"
             @debug "L2: BBB"
@@ -62,7 +67,7 @@ module Log4jlExample
     end
 
     function test_log1()
-        Log4jlExample2.test_log2()
+        Y.test_log2()
 
         trace(logger, "aaaaa")
         debug(logger, "bbbbb {}", 1)
@@ -88,5 +93,5 @@ for (ctxname, ctx) in Log4jl.contexts(Log4jl.LOG4JL_CONTEXT_SELECTOR)
 end
 println()
 
-Log4jlExample.test_log1()
+X.test_log1()
 println("END\n")

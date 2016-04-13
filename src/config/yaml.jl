@@ -42,7 +42,7 @@ appenders(cfg::YamlConfiguration) = cfg.appenders
 # logger(cfg::YamlConfiguration, name::AbstractString) = logger(cfg.loggers, name, cfg.root)
 loggers(cfg::YamlConfiguration) = cfg.loggers
 
-function setup(cfg::YamlConfiguration)
+function configure(cfg::YamlConfiguration)
     # if configuration is malformed
     if !haskey(cfg.data, "configuration")
         warn(LOGGER, "Malformed configuration: creating default ERROR-level Root logger with Console appender")
@@ -86,10 +86,6 @@ function setup(cfg::YamlConfiguration)
         # create appender object
         cfg.appenders[aconf["name"]] = apndType(aconf)
     end
-end
-
-function configure(cfg::YamlConfiguration)
-    conf = cfg.data["configuration"]
 
     refs = Dict[]
 
