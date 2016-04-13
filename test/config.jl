@@ -4,7 +4,7 @@ using ..Fixtures
 using FactCheck
 using Log4jl
 import Log4jl: Configuration, name, source, logger, loggers, default!, root,
-               appender, appenders, appender!, state, setup, configure,
+               appender, appenders, appender!, state, configure,
                LoggerConfig, level, level!, isadditive, references, reference!
 
 testapnd = Fixtures.TestAppender()
@@ -61,31 +61,22 @@ facts("Configurations") do
             @fact appenders(cfg) --> isempty
             @fact state(cfg) --> Log4jl.LifeCycle.INITIALIZED
         end
-        context("appender is added when `setup` is performed") do
+        context("it should be initialized by `configure`") do
+            # No appender and references
             @fact length(appenders(cfg)) --> 0
-            setup(cfg)
-            @fact length(appenders(cfg)) --> greater_than(0)
-            apnd = appender(cfg, "Default")
-            @fact isa(apnd, Log4jl.Appenders.Console) --> true
-        end
-        context("logger configuration is added when `configure` is performed") do
-            # There is no other logger then "root"
             @fact length(loggers(cfg)) --> 0
-            lgrcfg = logger(cfg, "Default")
-            @fact isa(lgrcfg, Log4jl.LoggerConfig) --> true
-            @fact lgrcfg --> root(cfg)
-
+            @fact length(references(root(cfg))) --> 0
+            configure(cfg)
             apnds = appenders(cfg) |> values
             @fact length(apnds) --> greater_than(0)
-            @fact length(references(lgrcfg)) --> 0
-            configure(cfg)
-
-            apndrefs = references(lgrcfg)
+            apnd = appender(cfg, "Default")
+            @fact isa(apnd, Log4jl.Appenders.Console) --> true
+            apndrefs = references(root(cfg))
             @fact length(apndrefs) --> greater_than(0)
             @fact isa(first(apndrefs), Log4jl.Appenders.Reference) --> true
             @fact first(apnds) --> first(apndrefs).appender
-        end
 
+        end
     end
     context("have a root logger which can be setup by calling `default!` function") do
         cfg = Log4jl.DefaultConfiguration()
