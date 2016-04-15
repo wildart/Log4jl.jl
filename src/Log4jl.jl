@@ -36,6 +36,14 @@ include("selector.jl")
 const LOG4JL_DEFAULT_MESSAGE = Messages.ParameterizedMessage
 const ROOT_LOGGER_NAME = ""
 
+function makemethods(fn::Symbol, lvl::Level.EventLevel)
+    eval(Log4jl, quote
+        $fn(l::AbstractLogger, marker::MARKER, msg, params...) = log(l, string(current_module()), $lvl, marker, msg, params...)
+        $fn(l::AbstractLogger, marker::Symbol, msg, params...) = log(l, string(current_module()), $lvl, MARKER(marker), msg, params...)
+        $fn(l::AbstractLogger, msg, params...)                 = log(l, string(current_module()), $lvl, MARKER(), msg, params...)
+    end)
+end
+
 # Logger methods
 for (fn,lvl) in ((:trace, Level.TRACE),
                  (:debug, Level.DEBUG),
@@ -43,12 +51,7 @@ for (fn,lvl) in ((:trace, Level.TRACE),
                  (:warn,  Level.WARN),
                  (:error, Level.ERROR),
                  (:fatal, Level.FATAL))
-
-    @eval begin
-        $fn(l::AbstractLogger, marker::MARKER, msg, params...) = log(l, string(current_module()), $lvl, marker, msg, params...)
-        $fn(l::AbstractLogger, marker::Symbol, msg, params...) = log(l, string(current_module()), $lvl, MARKER(marker), msg, params...)
-        $fn(l::AbstractLogger, msg, params...)                 = log(l, string(current_module()), $lvl, MARKER(), msg, params...)
-    end
+    makemethods(fn, lvl)
 end
 
 "`logger` macro parameters parser"
@@ -126,6 +129,16 @@ macro Log4jl(expr)
         end))
     end
     :(const $(esc(lvar)) = $rval)
+end
+
+macro register(lvar)
+    mod = current_module()
+    for fn in [:trace, :debug, :info, :warn, :error, :fatal]
+        eval(mod, :( macro $fn(msg...)
+            Expr(:call, esc($fn), $lvar, msg...)
+        end))
+    end
+    :()
 end
 
 

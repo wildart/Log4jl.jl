@@ -13,13 +13,13 @@ module X
     # println("Current:", module_parent(current_module()))
 
     using Log4jl
-    @Log4jl logger = @Log4jl.logger
+    @Log4jl logger = @logger
 
     module Y
         println("Current:", current_module())
 
         using Log4jl
-        @Log4jl logger = @Log4jl.logger URI="log4jl.json"
+        @Log4jl logger = @logger(URI="log4jl.json")
         Log4jl.level!(logger, Log4jl.Level.WARN)
 
         module Z
@@ -45,10 +45,13 @@ module X
             println(logger.config)
 
             function test_log3()
-                fatal(logger, "fffff {}", 5)
-                @fatal "FFF {}" 5
-                @debug "BBB {}" 1
-                @warn  "DDD {}" 3
+                fatal(logger, "L3: fatal {}", 5)
+                @fatal "L3: FATAL {}" 5
+                @debug "L3: DEBUG {}" 1
+                @warn  "L3: WARN {}" 3
+                @info  "L3: INFO {}" 2
+                @debug "L3: DEBUG"
+                trace(logger, "L3: TRACE")
             end
 
         end
@@ -56,12 +59,12 @@ module X
         function test_log2()
             Y.Z.test_log3()
 
-            @trace "L2: AAA"
-            @debug "L2: BBB"
-            @info  "L2: CCC {}" 2
-            @warn  "L2: DDD {}" 3
-            @error "L2: EEE {}" 4
-            @fatal "L2: FFF {}" 5
+            @trace "L2: TRACE"
+            @debug "L2: DEBUG"
+            @info  "L2: INFO {}" 2
+            @warn  "L2: WARN {}" 3
+            @error "L2: ERROR {}" 4
+            @fatal "L2: FATAL {}" 5
         end
 
     end
@@ -76,6 +79,7 @@ module X
         sleep(1.)
         fatal(logger, "fffff {}", 5)
         error(logger, "eeeee {}", 4)
+        Log4jl.verbose(logger, "vvvvv {}", 6)
     end
 
 end

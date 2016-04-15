@@ -1,6 +1,9 @@
 configuration:
   status: trace
   name: YAMLTest
+  customlevels:
+    diag: 350
+    verbose: 150
 
   properties:
     property:

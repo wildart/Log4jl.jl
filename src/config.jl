@@ -79,9 +79,8 @@ function logger!(cfg::Configuration, lcname::AbstractString, lc::LoggerConfig)
     end
 end
 
-function logger!(cfg::Configuration, lcname::AbstractString,
-                 lvl::Level.EventLevel = Level.ALL, additive::Bool = true)
-    lc = LoggerConfig(lcname, lvl, additive)
+function logger!(cfg::Configuration, lcname::AbstractString, lvl::Level.EventLevel = Level.ALL)
+    lc = LoggerConfig(lcname, lvl)
     return logger!(cfg, lcname, lc)
 end
 

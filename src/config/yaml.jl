@@ -26,6 +26,12 @@ function YamlConfiguration(cfgloc::AbstractString, cfgname::AbstractString="YAML
     if haskey(conf, "configuration")
         stat = conf["configuration"]
         cfgname = get(stat, "name", cfgname)
+        # custom levels
+        haskey(conf["configuration"], "customlevels") && for (l,v) in conf["configuration"]["customlevels"]
+            Level.add(symbol(l), Int32(v))
+        end
+        println(Level.levels)
+        # status
         haskey(stat, "status") && level!(LOGGER, evaltype((stat["status"] |> uppercase), "Level"))
     else
         error(LOGGER, "Malformed configuration: `configuration` node does not exist.")
@@ -110,7 +116,7 @@ function configure(cfg::YamlConfiguration)
         if haskey(lconf, "logger")
             for lcconf in lconf["logger"]
                 lcname = lcconf["name"]
-                lcadd = get(lcconf, "additivity", true)
+                lcadd = get(lcconf, "additivity", false)
                 lclvl = configlevel(lcconf)
                 logger!(cfg, lcname, LoggerConfig(lcname, lclvl, lcadd))
             end

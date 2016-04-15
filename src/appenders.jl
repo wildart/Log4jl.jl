@@ -44,7 +44,7 @@ module Appenders
             #TODO: filter event
         end
 
-        !isnull(evnt.level) && get(evnt.level) < ref.level && return
+        !isnull(evnt.level) && ref.level < get(evnt.level) && return
 
         #TODO: handle recursive calls
 

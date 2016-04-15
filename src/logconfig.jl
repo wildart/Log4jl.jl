@@ -20,7 +20,7 @@ function LoggerConfig(name::AbstractString, level::LEVEL, additive::Bool)
                         Nullable{LoggerConfig}(), FACTORY(LOG4JL_LOG_EVENT), true)
 end
 function LoggerConfig(name::AbstractString, level::Level.EventLevel,
-                      appenders::APPENDERS=APPENDERS(), additive::Bool = true)
+                      appenders::APPENDERS=APPENDERS(), additive::Bool = false)
     return LoggerConfig(name, LEVEL(level), additive, appenders,
                         Nullable{LoggerConfig}(), FACTORY(LOG4JL_LOG_EVENT), true)
 end
@@ -51,7 +51,7 @@ show(io::IO, lc::LoggerConfig) = print(io, "LoggerConfig(", isempty(lc.name) ? "
 
 "Check if message could be filtered based on its parameters"
 function isenabled(lc::LoggerConfig, lvl, marker, msg, params...)
-    level(lc) > lvl && return false
+    level(lc) < lvl && return false
     #TODO: add filters by marker and message content
     return true
 end

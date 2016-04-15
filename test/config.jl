@@ -35,14 +35,14 @@ facts("Configurations") do
     end
 
     context("should be referenced to logger with `LoggerConfig` object") do
-        root = LoggerConfig()
+        root = Log4jl.LoggerConfig()
         @fact name(root) --> isempty
         @fact level(root) --> Log4jl.LOG4JL_DEFAULT_STATUS_LEVEL
         @fact level(Nullable(root)) --> Log4jl.LOG4JL_DEFAULT_STATUS_LEVEL
         level!(root, Fixtures.TESTLEVEL)
         @fact level(root) --> Fixtures.TESTLEVEL
         @fact level(Nullable(root)) --> Fixtures.TESTLEVEL
-        @fact root --> isadditive
+        @fact root --> not(isadditive)
         context("which references appenders") do
             @fact length(references(root)) --> 0
             reference!(root, testapnd)

@@ -48,7 +48,7 @@ message(lgr::SimpleLogger) = lgr.message
 level(lgr::SimpleLogger) = lgr.level
 level!(lgr::SimpleLogger, lvl::Level.EventLevel) = lgr.level = lvl
 
-isenabled(lgr::SimpleLogger, lvl, mkr, msg, params...) = level(lgr) <= lvl
+isenabled(lgr::SimpleLogger, lvl, mkr, msg, params...) = level(lgr) >= lvl
 
 function log(lgr::SimpleLogger, fqmn, lvl, mkr, msg::Message)
     lgr.showdatetime && print(lgr.io, Dates.format(Dates.unix2datetime(time()), lgr.dateformat), " ")
