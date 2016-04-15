@@ -18,12 +18,70 @@ error(logger, "Error in my code")
 
 # or
 
+@Log4jl logger = @Log4jl.logger
+
 @error "Error in my code"
 ```
-
 See usage in [example/simple.jl](example/simple.jl).
 
-**Note:** If you use logging macros, make sure that constant `logger` exists in your current module.
+
+## Logger
+
+In order to create logger instance, call macro `@Log4jl.logger [<name>] [MSG=<message_type>] [URI=<config_location>] [begin <config_code_block> end]`. It accepts following parameters:
+
+1. `name`: a string which specifies a logger name from a configuration
+2. `MSG=<message_type>`: a message type used for configuring a logger
+3. `URI=<config_location>`: a configuration location
+4. `begin <configuration> end`: a configuration program block (must return `Configuration` object)
+
+
+If the root logger is required use macro `Log4jl.rootlogger` with the same parameters as for `Log4jl.logger` with one exception: root logger does not have a name.
+
+```julia
+# get the root logger
+const logger = @Log4jl.rootlogger
+
+# get the configured logger by name (uses FQMN by default)
+const logger = @Log4jl.logger
+
+# get the configured logger by name explicitly
+const logger = @Log4jl.logger "TestLogger"
+
+# get the configured logger by name that will use parameterized messages
+const logger = @Log4jl.logger "TestLogger" MSG=ParameterizedMessage
+
+# get the configured logger by from file specified in the parameter
+const logger = @Log4jl.logger URI="myconfig.xml"
+
+# get the configured logger from a programmatic configuration
+const logger = @Log4jl.logger begin
+    Configuration("Custom",
+        PROPERTIES(),
+        APPENDERS(),
+        LOGCONFIGS()
+    )
+end
+```
+
+## Configuration
+
+The default configuration file is `log4jl.*`. An extension of the configuration file determines format in which configuration is described.
+
+Configuration file should be located in:
+- For stand-alone module: a directory where a source code file of the module is located.
+- For package: a package root directory.
+
+## Log4jl Internal Properties
+
+Log4jl can be configured with properties which can be set through environmental variables.
+
+| Property | Description | Default Value |
+|----------|-------------|---------------|
+|LOG4JL_LINE_SEPARATOR| Default new line separator sequence | [(0x0d - win) 0x0a] |
+|LOG4JL_DEFAULT_STATUS_LEVEL| Default logger status level to use if not specified in configuration. | ERROR |
+|LOG4JL_INTERNAL_STATUS_LEVEL| Default status level of internal `Log4jl` logging to use if not specified in configuration. | WARN |
+|LOG4JL_LOG_EVENT| Type of the default logger event generator which converts messages into logging events. | Log4jlEvent |
+|LOG4JL_CONTEXT_SELECTOR| Type of the default logger context selector. | ModuleContextSelector |
 
 ## Logging Separation
 
@@ -116,6 +174,12 @@ configuration:
     - markers
     - objects
 
+### Constants
+
+- `LOG4JL_CONFIG_DEFAULT_PREFIX`: prefix of the configuration file. Default value is 'log4jl'.
+- `LOG4JL_CONFIG_EXTS`: Map of configuration file extensions.
+- `LOG4JL_CONFIG_TYPES`: Map of configuration types.
+
 ### Implementation details
 - 'isenabled' checks if logger allowed to process event at specified level
 
@@ -131,60 +195,11 @@ configuration:
 - Configuration formats: JSON, XML, DSL (macro based)
 - Handle configuration recursion
 
-### Logger
-
-In order to create logger, call macro `@Log4jl.logger [<name>] [MSG=<message_type>] [URI=<config_location>] [begin <config_code_block> end]`.
-
-```julia
-# get the root logger
-const logger = @Log4jl.rootlogger
-
-# get the configured logger by name (uses FQMN by default)
-const logger = @Log4jl.logger
-
-# get the configured logger by name explicitly
-const logger = @Log4jl.logger "TestLogger"
-
-# get the configured logger by name that will use parameterized messages
-const logger = @Log4jl.logger "TestLogger" MSG=ParameterizedMessage
-
-# get the configured logger by from file specified in the parameter
-const logger = @Log4jl.logger URI="myconfig.xml"
-
-# get the configured logger from a programmatic configuration
-const logger = @Log4jl.logger begin
-    Configuration("Custom",
-        PROPERTIES(),
-        APPENDERS(),
-        LOGCONFIGS()
-    )
-end
-```
-
-Macro `@Log4jl.logger` creates logger instance. It accepts following parameters:
-
-1. `name`: a string which specifies a logger name from a configuration
-2. `MSG=<message_type>`: a message type used for configuring a logger
-3. `URI=<config_location>`: a configuration location
-4. `begin <configuration> end`: a configuration program block (must return `Configuration` object)
-
-If the root logger is required use macro `Log4jl.rootlogger` with the same parameters as for `Log4jl.logger` with one exception: root logger does not have a name.
-
-The default configuration file is `log4jl.*`. An extension of the configuration file determines format in which configuration is described.
-
-Currently supported configuration formats: YAML.
-
-Configuration file should be located in:
-- For stand-alone module: a directory where a source code file of the module is located.
-- For package: a package root directory.
-
 ### Message
 
 - For custom formated messages, create two functions with the same name and following signatures:
     - <message_type_function>(msg::AbstractString, params...) => Message
     - <message_type_function>(msg::Any) => Message
-
-
 
 ## Loading sequence
 

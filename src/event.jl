@@ -18,7 +18,7 @@ end
 function Log4jlEvent(logger::AbstractString, fqmn::AbstractString, marker::MARKER, level::LEVEL, msg::Message)
     return Log4jlEvent(logger, fqmn, marker, level, msg, time())
 end
-Log4jlEvent(timestamp::Float64) = Log4jlEvent("", "", MARKER(), LEVEL(), SimpeMessage(""), timestamp)
+Log4jlEvent(timestamp::Float64) = Log4jlEvent("", "", MARKER(), LEVEL(), Messages.SimpleMessage(""), timestamp)
 Log4jlEvent() = Log4jlEvent(time())
 
 function show(io::IO, evnt::Log4jlEvent)

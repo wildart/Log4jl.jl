@@ -17,12 +17,12 @@ global LOG4JL_CONTEXT_SELECTOR
 const LOG4JL_CONFIG_DEFAULT_PREFIX = "log4jl"
 const LOG4JL_CONFIG_EXTS = Dict{Symbol, Vector{AbstractString}}()
 const LOG4JL_CONFIG_TYPES = Dict{Symbol, DataType}()
-const LOG4JL_CONFIG_PARSER_CALL = "parse_<type>_config"
 
 # Imports
 include("utils.jl")
+include("levels.jl")
 include("types.jl")
-include("message.jl")
+include("messages.jl")
 include("event.jl")
 include("layouts.jl")
 include("appenders.jl")
@@ -184,17 +184,17 @@ function __init__()
                                          @windows? [0x0d, 0x0a] : [0x0a]
     eval(Layouts, parse("import ..Log4jl.LOG4JL_LINE_SEPARATOR"))
 
-    # Default logger context selector
+    # Default logger status level
     global const LOG4JL_DEFAULT_STATUS_LEVEL = "LOG4JL_DEFAULT_STATUS_LEVEL" in keys(ENV) ?
-                                               eval(parse("Level.$(ENV["LOG4JL_DEFAULT_STATUS_LEVEL"])")) :
+                                               get(getlevel(ENV["LOG4JL_DEFAULT_STATUS_LEVEL"]), Level.ERROR) :
                                                Level.ERROR
 
-    # Default logger context selector
+    # Default internal logger status level
     global const LOG4JL_INTERNAL_STATUS_LEVEL = "LOG4JL_INTERNAL_STATUS_LEVEL" in keys(ENV) ?
-                                               eval(parse("Level.$(ENV["LOG4JL_INTERNAL_STATUS_LEVEL"])")) :
+                                               get(getlevel(ENV["LOG4JL_INTERNAL_STATUS_LEVEL"]), Level.WARN) :
                                                Level.WARN
 
-    # Default logger context selector
+    # Default logger event generator
     global const LOG4JL_LOG_EVENT = "LOG4JL_LOG_EVENT" in keys(ENV) ?
                                     eval(parse(ENV["LOG4JL_LOG_EVENT"])) :
                                     Log4jlEvent

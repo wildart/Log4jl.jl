@@ -85,7 +85,11 @@ function evaltype(stype::AbstractString, smodule::AbstractString="")
     end
 end
 
+function getlevel(strlevel::AbstractString)
+    lt = evaltype(strlevel, "Level")
+    return LEVEL(lt === Void ? nothing : lt)
+end
+
 function configlevel(conf::Dict)
-    return LEVEL(haskey(conf, "level") ?
-           evaltype((conf["level"] |> uppercase), "Level") : nothing)
+    return haskey(conf, "level") ? getlevel((conf["level"] |> uppercase)) : LEVEL()
 end

@@ -30,7 +30,6 @@ function YamlConfiguration(cfgloc::AbstractString, cfgname::AbstractString="YAML
         haskey(conf["configuration"], "customlevels") && for (l,v) in conf["configuration"]["customlevels"]
             Level.add(symbol(l), Int32(v))
         end
-        println(Level.levels)
         # status
         haskey(stat, "status") && level!(LOGGER, evaltype((stat["status"] |> uppercase), "Level"))
     else
@@ -45,7 +44,6 @@ getconfig(::Type{YamlConfiguration}, cfgloc::AbstractString, cfgname::AbstractSt
 
 appender(cfg::YamlConfiguration, name::AbstractString) = get(cfg.appenders, name, nothing)
 appenders(cfg::YamlConfiguration) = cfg.appenders
-# logger(cfg::YamlConfiguration, name::AbstractString) = logger(cfg.loggers, name, cfg.root)
 loggers(cfg::YamlConfiguration) = cfg.loggers
 
 function configure(cfg::YamlConfiguration)

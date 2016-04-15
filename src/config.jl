@@ -190,19 +190,6 @@ function findConfigurationParser(config_file)
     return parser_type
 end
 
-"Form evaluation script for a configuration parser"
-function formConfiguration(config_file, parser_type)
-    # Check if parser exists and form configuration evaluator
-    if !isnull(parser_type)
-        pts = get(parser_type) |> string |> lowercase
-        parser_call = replace(LOG4JL_CONFIG_PARSER_CALL, "<type>", pts)
-        ptscript = joinpath(dirname(@__FILE__), "config", "$(pts).jl")
-        Nullable(parse("include(\"$ptscript\"); $(parser_call)(\"$(config_file)\")"))
-    else
-        Nullable{Expr}() # or return empty
-    end
-end
-
 "Locate configuration resource"
 function locateconfig(cfgloc::AbstractString, loader=nothing)
     # get module location
@@ -231,8 +218,12 @@ function getconfig(cfgloc::AbstractString, cfgname::AbstractString, loader=nothi
         parser_type = findConfigurationParser(config_file)
         if !isnull(parser_type)
             cfgtype = LOG4JL_CONFIG_TYPES[get(parser_type, :DEFAULT)]
-            return isempty(cfgname) ? getconfig(cfgtype, config_file) :
-                                      getconfig(cfgtype, config_file, cfgname)
+            try
+                return isempty(cfgname) ? getconfig(cfgtype, config_file) :
+                                          getconfig(cfgtype, config_file, cfgname)
+            catch err
+                error(LOGGER, "Configuration initialization error: $err.")
+            end
         end
     end
 
