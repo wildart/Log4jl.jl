@@ -27,6 +27,7 @@ module Level
     end
     Base.show(io::IO,x::EventLevel) = print(io, x, "::EventLevel")
 
+    "Create a custom level and generate convenience functions"
     function add(lvl::Symbol, lvlval::Int32)
         lvlup = symbol(uppercase(string(lvl)))
         lvllw = symbol(lowercase(string(lvl)))

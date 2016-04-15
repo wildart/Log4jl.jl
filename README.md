@@ -37,6 +37,70 @@ There are a few ways to archive logging separation using different `ContextSelec
 
 Context selection can be done by setting environment variable `LOG4JL_CONTEXT_SELECTOR` with a name of context selector type.
 
+## Custom Log Levels
+`Log4jl` supports custom log levels. Custom log levels can be defined in code or in configuration. To define a custom log level in code, use the `Level.add` function. This function creates a new level for the specified name and generates appropriate convenience functions. After a log level is defined you can log messages at this level by calling corresponding log function:
+
+```julia
+# This creates the "VERBOSE" level if it does not exist yet.
+Log4jl.Level.add(:VERBOSE, 550)
+
+# Create a logger
+const logger = @logger
+
+# Use the custom VERBOSE level
+Log4jl.verbose(logger, "a verbose message")
+```
+
+When defining a custom log level, the intLevel parameter (550 in the example above) determines where the custom level exists in relation to the standard levels built-in to Log4jl. For reference, the table below shows the intLevel of the built-in log levels.
+
+Standard log levels built-in to Log4jl
+
+|Standard Level|intLevel|
+|--------------|--------|
+|OFF|0|
+|FATAL|100|
+|ERROR|200|
+|WARN|300|
+|INFO|400|
+|DEBUG|500|
+|TRACE|600|
+|ALL|typemax(Int16)|
+
+### Defining Custom Log Levels in Configuration
+
+Custom log levels can also be defined in configuration. This is convenient for using a custom level in a logger filter or an appender filter. Similar to defining log levels in code, a custom level must be defined first, before it can be used. If a logger or appender is configured with an undefined level, that logger or appender will be invalid and will not process any log events.
+
+The `customlevels` section of configuration element defines a custom levels. Internally it calls the same `Level.add` function discussed above.
+
+|Parameter Name|   Type|    Description|
+|--------------|-------|---------------|
+|name|string|The name of the custom level. The convention is to use all upper-case names.|
+|intLevel|integer|Determines where the custom level exists in relation to the standard levels built-in to Log4jl (see the table above).|
+
+The following example shows a configuration that defines some custom log levels and uses a custom log level to filter log events sent to the console.
+```yaml
+configuration:
+  status: trace
+  name: YAMLTest
+  customlevels:
+    diag: 350
+    verbose: 150
+
+  appenders:
+    ColorConsole:
+      name: STDOUT
+
+  loggers:
+    logger:
+      -
+        name: X.Y
+        level: diag
+        appenderref:
+          -
+            ref: STDOUT
+```
+
+
 ## Dev Notes
 
 ### Architecture
@@ -58,7 +122,6 @@ Context selection can be done by setting environment variable `LOG4JL_CONTEXT_SE
 ### Missing
 - On-fly reconfiguration
 - Multi-threading/processing support
-- Custom log levels
 - Filters
     - Accept: no filters called, accept event
     - Deny: ignore event, return to caller
@@ -120,6 +183,8 @@ Configuration file should be located in:
 - For custom formated messages, create two functions with the same name and following signatures:
     - <message_type_function>(msg::AbstractString, params...) => Message
     - <message_type_function>(msg::Any) => Message
+
+
 
 ## Loading sequence
 
