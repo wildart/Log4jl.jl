@@ -116,7 +116,7 @@ function configure(cfg::YamlConfiguration)
                 lcname = lcconf["name"]
                 lcadd = get(lcconf, "additivity", false)
                 lclvl = configlevel(lcconf)
-                logger!(cfg, lcname, LoggerConfig(lcname, lclvl, lcadd))
+                logger!(cfg, lcname, LoggerConfig(lcname, lclvl, additive=lcadd))
             end
             append!(refs, lconf["logger"])
         end

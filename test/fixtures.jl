@@ -9,6 +9,7 @@ module Fixtures
 
     const TESTNAME   = "TEST"
     const TESTLEVEL  = Log4jl.Level.TRACE
+    const TESTLEVELN  = Log4jl.LEVEL(TESTLEVEL)
     const TESTMARKER = :TESTMARKER
 
     type IncompleteMessage <: Log4jl.Message

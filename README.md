@@ -1,4 +1,4 @@
-# Log4jl - a logging framework for Julia
+# Log4jl - a versatile logging framework for Julia
 
 [![Build Status](https://travis-ci.org/wildart/Log4jl.jl.svg?branch=master)](https://travis-ci.org/wildart/Log4jl.jl)[![Coverage Status](https://coveralls.io/repos/wildart/Log4jl.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/wildart/Log4jl.jl?branch=master)
 

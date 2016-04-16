@@ -14,7 +14,6 @@ logger(cfg::NullConfiguration, name::AbstractString) = cfg.root
 loggers(cfg::NullConfiguration) = LOGCONFIGS()
 logger!(cfg::NullConfiguration, nm::AbstractString, lc::LoggerConfig) = nothing
 state(cfg::NullConfiguration) = LifeCycle.STOPPED
-setup(cfg::NullConfiguration) = nothing
 configure(cfg::NullConfiguration) = nothing
 
 # Register configuration type
@@ -45,6 +44,7 @@ function configure(cfg::DefaultConfiguration)
 
     # Reference appender to root configuration
     reference!(cfg, ROOT_LOGGER_NAME => "Default")
+    return
 end
 
 # Register configuration type

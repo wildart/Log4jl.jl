@@ -3,7 +3,7 @@ module TestConfig
 using ..Fixtures
 using FactCheck
 using Log4jl
-import Log4jl: Configuration, name, source, logger, loggers, default!, root,
+import Log4jl: Configuration, name, source, logger, logger!, loggers, default!, root,
                appender, appenders, appender!, state, configure,
                LoggerConfig, level, level!, isadditive, references, reference!
 
@@ -32,6 +32,9 @@ facts("Configurations") do
         @fact appender(cfg, Fixtures.TESTNAME) --> nothing
         @fact appenders(cfg) --> isempty
         @fact appender!(cfg, Fixtures.TESTNAME, testapnd) --> nothing
+        @fact logger!(cfg, Fixtures.TESTNAME, LoggerConfig()) --> nothing
+        @fact state(cfg) --> Log4jl.LifeCycle.STOPPED
+        @fact configure(cfg) --> nothing
     end
 
     context("should be referenced to logger with `LoggerConfig` object") do

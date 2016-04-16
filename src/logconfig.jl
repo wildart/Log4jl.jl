@@ -15,12 +15,13 @@ end
 typealias LOGCONFIGS Dict{AbstractString, LoggerConfig}
 
 # Constructors
-function LoggerConfig(name::AbstractString, level::LEVEL, additive::Bool)
-    return LoggerConfig(name, level, additive, APPENDERS(),
+function LoggerConfig(name::AbstractString, level::LEVEL,
+                      appenders::APPENDERS=APPENDERS(); additive::Bool = false)
+    return LoggerConfig(name, level, additive, appenders,
                         Nullable{LoggerConfig}(), FACTORY(LOG4JL_LOG_EVENT), true)
 end
 function LoggerConfig(name::AbstractString, level::Level.EventLevel,
-                      appenders::APPENDERS=APPENDERS(), additive::Bool = false)
+                      appenders::APPENDERS=APPENDERS(); additive::Bool = false)
     return LoggerConfig(name, LEVEL(level), additive, appenders,
                         Nullable{LoggerConfig}(), FACTORY(LOG4JL_LOG_EVENT), true)
 end
