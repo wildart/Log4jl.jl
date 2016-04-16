@@ -214,10 +214,6 @@ level(lgr::AbstractLogger) = throw(AssertionError("Function 'level' is not imple
 level!(lgr::AbstractLogger, lvl::Level.EventLevel) = throw(AssertionError("Function 'level!' is not implemented for type $(typeof(lgr))"))
 
 
-""" Abstract event filtering """
-abstract Filter
-typealias FILTER Nullable{Filter}
-
 # Aliases
 typealias MARKER Nullable{Symbol}
 typealias FACTORY Nullable{DataType}

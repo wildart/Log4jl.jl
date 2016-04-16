@@ -8,12 +8,13 @@ module Fixtures
            InvalidAppender, TestAppender, append!
 
     const TESTNAME   = "TEST"
-    const TESTLEVEL  = Log4jl.Level.TRACE
+    const TESTLEVEL  = Log4jl.Level.INFO
     const TESTLEVELN  = Log4jl.LEVEL(TESTLEVEL)
     const TESTMARKER = :TESTMARKER
 
     type IncompleteMessage <: Log4jl.Message
     end
+    TESTMSG = Log4jl.Messages.SimpleMessage(Fixtures.TESTNAME)
 
     type InvalidConfiguration <: Log4jl.Configuration
     end
@@ -21,7 +22,7 @@ module Fixtures
     type TestEvent <: Log4jl.Event
     end
     level(evnt::TestEvent) = TESTLEVEL
-    marker(evnt::TestEvent) = TESTMARKER
+    marker(evnt::TestEvent) = Log4jl.MARKER(TESTMARKER)
 
     type InvalidAppender <: Log4jl.Appender
     end

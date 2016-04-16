@@ -4,6 +4,11 @@ configuration:
   customlevels:
     diag: 350
     verbose: 150
+  filters:
+    MarkerFilter:
+      marker: FLOW
+      match: ACCEPT
+      mismatch: DENY
 
   properties:
     property:
@@ -24,8 +29,7 @@ configuration:
     List:
       name: LIST
       filters:
-        ThresholdFilter:
-          level: error
+        ThresholdFilter
 
   loggers:
     logger:

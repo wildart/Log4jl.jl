@@ -5,7 +5,7 @@ export trace, debug, info, warn, error, fatal,
        @logger, @Log4jl
 
 import Base: append!, serialize, show, in, delete!, string,
-             trace, info, warn, error
+             trace, info, warn, error, filter
 
 # To be set parameters
 global LOG4JL_LINE_SEPARATOR
@@ -24,6 +24,7 @@ include("levels.jl")
 include("types.jl")
 include("messages.jl")
 include("event.jl")
+include("filter.jl")
 include("layouts.jl")
 include("appenders.jl")
 include("logconfig.jl")
