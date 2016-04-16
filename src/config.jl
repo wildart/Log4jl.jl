@@ -7,6 +7,10 @@ function start(cfg::Configuration)
 
     configure(cfg)
 
+    # start context-wide filters
+    cfgflt = filter(cfg)
+    !isnull(cfgflt) && start(get(cfgflt))
+
     #TODO: start loggers, it's needed for filters
     # for l in values(loggers(cfg))
     #     start(l)
@@ -37,6 +41,10 @@ function stop(cfg::Configuration)
         end
     end
     trace(LOGGER, "Stopped $c appenders in $(cfg)")
+
+    # stop context-wide filters
+    cfgflt = filter(cfg)
+    !isnull(cfgflt) && stop(get(cfgflt))
 
     #TODO: stop loggers' filters
     c = 0

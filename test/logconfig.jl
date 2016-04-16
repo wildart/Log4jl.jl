@@ -29,16 +29,8 @@ facts("Logger Configuration") do
         @fact level(lc) --> Log4jl.Level.OFF
         plc = LoggerConfig()
         parent!(lc, plc)
-        println(parent(lc))
         @fact parent(lc) --> not(isnull)
         @fact get(parent(lc)) --> plc
-    end
-
-    context("can filter logging messages and events") do
-        lc = LoggerConfig(Fixtures.TESTNAME, Log4jl.Level.INFO)
-        @fact isenabled(lc, Log4jl.Level.INFO, Fixtures.TESTMARKER, "MSG") --> true
-        level!(lc, Log4jl.Level.OFF)
-        @fact isenabled(lc, Log4jl.Level.INFO, Fixtures.TESTMARKER, "MSG") --> false
     end
 end
 

@@ -8,7 +8,7 @@ type YamlConfiguration <: Configuration
     properties::PROPERTIES
     appenders::APPENDERS
     loggers::LOGCONFIGS
-    #customLevels
+    filter::FILTER
 
     data::Dict # Configuration data
 end
@@ -37,7 +37,7 @@ function YamlConfiguration(cfgloc::AbstractString, cfgname::AbstractString="YAML
     end
 
     YamlConfiguration(cfgname, cfgloc, LifeCycle.INITIALIZED, LoggerConfig(),
-                      PROPERTIES(), APPENDERS(), LOGCONFIGS(),
+                      PROPERTIES(), APPENDERS(), LOGCONFIGS(), FILTER(),
                       conf)
 end
 getconfig(::Type{YamlConfiguration}, cfgloc::AbstractString, cfgname::AbstractString="YAML") = YamlConfiguration(cfgloc, cfgname)
@@ -45,6 +45,7 @@ getconfig(::Type{YamlConfiguration}, cfgloc::AbstractString, cfgname::AbstractSt
 appender(cfg::YamlConfiguration, name::AbstractString) = get(cfg.appenders, name, nothing)
 appenders(cfg::YamlConfiguration) = cfg.appenders
 loggers(cfg::YamlConfiguration) = cfg.loggers
+filter(cfg::YamlConfiguration) = cfg.filter
 
 function configure(cfg::YamlConfiguration)
     # if configuration is malformed

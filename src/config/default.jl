@@ -15,6 +15,7 @@ loggers(cfg::NullConfiguration) = LOGCONFIGS()
 logger!(cfg::NullConfiguration, nm::AbstractString, lc::LoggerConfig) = nothing
 state(cfg::NullConfiguration) = LifeCycle.STOPPED
 configure(cfg::NullConfiguration) = nothing
+filter(cfg::NullConfiguration) = FILTER()
 
 # Register configuration type
 LOG4JL_CONFIG_TYPES[:NULL] = NullConfiguration
@@ -30,13 +31,15 @@ type DefaultConfiguration <: Configuration
     properties::PROPERTIES
     appenders::APPENDERS
     loggers::LOGCONFIGS
+    filter::FILTER
 
     DefaultConfiguration() =
-        new("Default", "", LifeCycle.INITIALIZED, LoggerConfig(), PROPERTIES(), APPENDERS(), LOGCONFIGS())
+        new("Default", "", LifeCycle.INITIALIZED, LoggerConfig(), PROPERTIES(), APPENDERS(), LOGCONFIGS(), FILTER())
 end
 appender(cfg::DefaultConfiguration, name::AbstractString) = get(cfg.appenders, name, nothing)
 appenders(cfg::DefaultConfiguration) = cfg.appenders
 loggers(cfg::DefaultConfiguration) = cfg.loggers
+filter(cfg::DefaultConfiguration) = cfg.filter
 
 function configure(cfg::DefaultConfiguration)
     # Add basic console appender

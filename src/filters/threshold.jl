@@ -5,13 +5,13 @@ Default values: `level` is `ERROR`, `match` is `NEUTRAL`, `mismatch` is `DENY`.
 """
 type ThresholdFilter <: Filter
     level::Level.EventLevel
-    match::FilterResult
-    mismatch::FilterResult
+    match::FilterResult.ResultType
+    mismatch::FilterResult.ResultType
     state::LifeCycle.State
-    ThresholdFilter(lvl::Level.EventLevel, match::FilterResult, mismatch::FilterResult) =
+    ThresholdFilter(lvl::Level.EventLevel, match::FilterResult.ResultType, mismatch::FilterResult.ResultType) =
         new(lvl, match, mismatch, LifeCycle.INITIALIZED)
 end
-ThresholdFilter(lvl::Level.EventLevel) = ThresholdFilter(lvl, NEUTRAL, DENY)
+ThresholdFilter(lvl::Level.EventLevel) = ThresholdFilter(lvl, FilterResult.NEUTRAL, FilterResult.DENY)
 ThresholdFilter() = ThresholdFilter(Level.ERROR)
 
 "Make the filter available for use."

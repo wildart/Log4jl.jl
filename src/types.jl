@@ -185,9 +185,11 @@ loggers(cfg::Configuration) = throw(AssertionError("Function 'loggers' is not im
 "Returns  `Appender`  with the specified `name`"
 appender(cfg::Configuration, name::AbstractString) = throw(AssertionError("Function 'appender' is not implemented for type $(typeof(cfg))"))
 
-"Return a list of `Appender`s from the configuration"
+"Returns a list of `Appender`s from the configuration"
 appenders(cfg::Configuration) = throw(AssertionError("Function 'appenders' is not implemented for type $(typeof(cfg))"))
 
+"Returns a `FILTER` in the configuration"
+filter(cfg::Configuration) = throw(AssertionError("Function 'filter' is not implemented for type $(typeof(cfg))"))
 
 """
 Abstract Logger Type

@@ -5,12 +5,13 @@ Default values: `match` is `NEUTRAL`, `mismatch` is `DENY`.
 """
 type MarkerFilter <: Filter
     marker::Symbol
-    match::FilterResult
-    mismatch::FilterResult
+    match::FilterResult.ResultType
+    mismatch::FilterResult.ResultType
     state::LifeCycle.State
-    MarkerFilter(marker::Symbol, match::FilterResult, mismatch::FilterResult) = new(marker, match, mismatch, LifeCycle.INITIALIZED)
+    MarkerFilter(marker::Symbol, match::FilterResult.ResultType, mismatch::FilterResult.ResultType) =
+        new(marker, match, mismatch, LifeCycle.INITIALIZED)
 end
-MarkerFilter(marker::Symbol) = MarkerFilter(marker, NEUTRAL, DENY)
+MarkerFilter(marker::Symbol) = MarkerFilter(marker, FilterResult.NEUTRAL, FilterResult.DENY)
 
 "Make the filter available for use."
 function start(flt::MarkerFilter)

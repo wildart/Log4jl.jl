@@ -7,23 +7,25 @@ type LoggerConfig
     appenders::Dict{AbstractString, Appenders.Reference}
     parent::Nullable{LoggerConfig}
     event::FACTORY
+    filter::FILTER
     includelocation::Bool
     #TODO: properties::Dict{Property, Bool}
-    #TODO: filter::Filter
 end
 
 typealias LOGCONFIGS Dict{AbstractString, LoggerConfig}
 
 # Constructors
 function LoggerConfig(name::AbstractString, level::LEVEL,
-                      appenders::APPENDERS=APPENDERS(); additive::Bool = false)
+                      appenders::APPENDERS=APPENDERS(), filter::FILTER=FILTER();
+                      additive::Bool = false)
     return LoggerConfig(name, level, additive, appenders,
-                        Nullable{LoggerConfig}(), FACTORY(LOG4JL_LOG_EVENT), true)
+                        Nullable{LoggerConfig}(), FACTORY(LOG4JL_LOG_EVENT), filter, true)
 end
 function LoggerConfig(name::AbstractString, level::Level.EventLevel,
-                      appenders::APPENDERS=APPENDERS(); additive::Bool = false)
+                      appenders::APPENDERS=APPENDERS(), filter::FILTER=FILTER();
+                      additive::Bool = false)
     return LoggerConfig(name, LEVEL(level), additive, appenders,
-                        Nullable{LoggerConfig}(), FACTORY(LOG4JL_LOG_EVENT), true)
+                        Nullable{LoggerConfig}(), FACTORY(LOG4JL_LOG_EVENT), filter, true)
 end
 LoggerConfig(level::Level.EventLevel) = LoggerConfig("", level)
 LoggerConfig() = LoggerConfig(LOG4JL_DEFAULT_STATUS_LEVEL)
@@ -41,6 +43,7 @@ isadditive(lc::LoggerConfig) = lc.additive
 
 "Logs an event"
 function log(lc::LoggerConfig, evnt::Event)
+    isfiltered(lc.filter, evnt) && return
     map(ref->append!(ref, evnt), values(lc.appenders))
     lc.additive && !isnull(lc.parent) && log(get(lc.parent), evnt)
 end
@@ -49,13 +52,6 @@ function log(lc::LoggerConfig, logger, fqmn, level, marker, msg)
 end
 
 show(io::IO, lc::LoggerConfig) = print(io, "LoggerConfig(", isempty(lc.name) ? "root" : lc.name, ":", level(lc) , ")")
-
-"Check if message could be filtered based on its parameters"
-function isenabled(lc::LoggerConfig, lvl, marker, msg, params...)
-    level(lc) < lvl && return false
-    #TODO: add filters by marker and message content
-    return true
-end
 
 "Returns all appender references"
 references(lc::LoggerConfig) = values(lc.appenders)

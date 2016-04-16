@@ -104,7 +104,7 @@ function logger(ctx::LoggerContext, lname::AbstractString,
     lname in ctx && return ctx.loggers[lname]
 
     # otherwise create new logger and return it
-    lgr = Logger(lname, msgfactory, logger(ctx.config, lname))
+    lgr = Logger(lname, msgfactory, logger(ctx.config, lname), filter(ctx.config))
     ctx.loggers[lname] = lgr
     return lgr
 end

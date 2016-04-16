@@ -1,7 +1,7 @@
 "Main logging function"
-function log(lgr::AbstractLogger, fqmn, level, marker, msg, params...)
-    if isenabled(lgr, level, marker, msg, params...)
-        log(lgr, fqmn, level, marker, message(lgr)(msg, params...))
+function log(lgr::AbstractLogger, fqmn::AbstractString, lvl::Level.EventLevel, mkr::MARKER, msg, params...)
+    if isenabled(lgr, lvl, mkr, msg, params...)
+        log(lgr, fqmn, lvl, mkr, message(lgr)(msg, params...))
     end
     return
 end
@@ -12,6 +12,7 @@ type Logger <: AbstractLogger
     name::AbstractString
     message::DataType
     config::LoggerConfig
+    filter::FILTER  # This filter comes from Configuration
 end
 show(io::IO, lgr::Logger) = print(io, name(lgr), ":", level(lgr))
 name(lgr::Logger) = lgr.name
@@ -20,12 +21,17 @@ level(lgr::Logger) = level(lgr.config)
 level!(lgr::Logger, lvl::Level.EventLevel) = level!(lgr.config, lvl)
 
 "Logs a message"
-log(lgr::Logger, fqmn, level, marker, msg::Message) =
-    log(lgr.config, name(lgr), fqmn, level, marker, msg)
+log(lgr::Logger, fqmn::AbstractString, lvl::Level.EventLevel, mkr::MARKER, msg::Message) =
+    log(lgr.config, name(lgr), fqmn, lvl, mkr, msg)
 
 "Check if message is valid for logging"
-isenabled(lgr::Logger, lvl, mkr, msg, params...) = isenabled(lgr.config, lvl, mkr, msg, params...)
-
+function isenabled(lgr::Logger, lvl::Level.EventLevel, mkr::MARKER, msg, params...)
+    if !isnull(lgr.filter)
+        r = filter(get(lgr.filter), lvl, mkr, msg)
+        r != FilterResult.NEUTRAL && return r == FilterResult.ACCEPT
+    end
+    level(lgr.config) >= lvl
+end
 
 "Simple IO logger"
 type SimpleLogger <: AbstractLogger
@@ -50,7 +56,7 @@ level!(lgr::SimpleLogger, lvl::Level.EventLevel) = lgr.level = lvl
 
 isenabled(lgr::SimpleLogger, lvl, mkr, msg, params...) = level(lgr) >= lvl
 
-function log(lgr::SimpleLogger, fqmn, lvl, mkr, msg::Message)
+function log(lgr::SimpleLogger, fqmn::AbstractString, lvl::Level.EventLevel, mkr::MARKER, msg::Message)
     lgr.showdatetime && print(lgr.io, Dates.format(Dates.unix2datetime(time()), lgr.dateformat), " ")
     print(lgr.io, string(lvl), " ")
     lgr.showname && print(lgr.io, name(lgr), " ")
