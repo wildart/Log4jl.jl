@@ -12,12 +12,14 @@ facts("Appenders") do
         @fact_throws AssertionError name(apnd)
         @fact_throws AssertionError layout(apnd)
         @fact_throws AssertionError state(apnd)
+        @fact_throws AssertionError filter(apnd)
         @fact_throws AssertionError append!(apnd, Fixtures.TestEvent())
 
         testapnd = Fixtures.TestAppender()
         testevent = Fixtures.TestEvent()
         @fact name(testapnd) --> Fixtures.TESTNAME
         @fact layout(testapnd) --> isnull
+        @fact filter(testapnd) --> isnull
         @fact append!(testapnd, testevent) --> testevent
         @fact state(testapnd) --> Log4jl.LifeCycle.INITIALIZED
     end

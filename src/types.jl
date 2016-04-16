@@ -11,7 +11,8 @@ module LifeCycle
           STARTING,   # In the process of starting.
           STARTED,    # Has started.
           STOPPING,   # Stopping is in progress.
-          STOPPED)    # Has stopped.
+          STOPPED,    # Has stopped.
+          INVALID)    # Something happend
 
     doc"""Life cycle states enumeration"""
     State
@@ -123,10 +124,11 @@ string(lyt::LAYOUT, evnt::Event) = !isnull(lyt) ? string(get(lyt), evnt) : "No l
 
 """ Abstract appender
 
-Any appender implementation must have two fields:
+Any appender implementation must have tree fields:
 
 - `name`::AbstractString - appender name for reference
 - `layout`::Nullable{`Layout`} - layout object for output modification
+- `filter`::Nullable{`Filter`} - appender filter object
 
 In addition to basic fields, every appender should have a method `append!`:
 
@@ -144,6 +146,9 @@ name(apnd::Appender) = isdefined(apnd, :name) ? apnd.name : throw(AssertionError
 
 """ Returns layout of the appender """
 layout(apnd::Appender) = isdefined(apnd, :layout) ? apnd.layout : throw(AssertionError("Define field 'layout' in type $(typeof(apnd))"))
+
+""" Returns layout of the appender """
+filter(apnd::Appender) = isdefined(apnd, :filter) ? apnd.filter : throw(AssertionError("Define field 'filter' in type $(typeof(apnd))"))
 
 """ Adds event to the appender """
 append!(apnd::Appender, evnt::Event) = throw(AssertionError("Function 'append!' is not implemented for type $(typeof(apnd))"))

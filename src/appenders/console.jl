@@ -6,6 +6,7 @@ It appends log events to `STDOUT` or `STDERR` using a layout specified by the us
 type Console <: Appender
     name::AbstractString
     layout::LAYOUT
+    filter::FILTER
     state::LifeCycle.State
 
     target::IO
@@ -14,7 +15,8 @@ function Console(config::Dict{Symbol,Any})
     nm = get(config, :name, "STDERR")
     lyt= get(config, :layout, nothing)
     io = get(config, :target, :STDERR)
-    Console(nm, LAYOUT(lyt), LifeCycle.INITIALIZED, io == :STDOUT ? STDOUT : STDERR)
+    flt = get(config, :filter, nothing)
+    Console(nm, LAYOUT(lyt), FILTER(flt), LifeCycle.INITIALIZED, io == :STDOUT ? STDOUT : STDERR)
 end
 Console(;kwargs...) = Console(Dict{Symbol,Any}(kwargs))
 show(io::IO, apnd::Console) = print(io, "Console($(apnd.name))")

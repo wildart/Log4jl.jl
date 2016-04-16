@@ -6,6 +6,7 @@ It appends log events to `STDOUT` or `STDERR` using a layout specified by the us
 type ColorConsole <: Appender
     name::AbstractString
     layout::LAYOUT
+    filter::FILTER
     state::LifeCycle.State
 
     io::IO
@@ -14,7 +15,8 @@ function ColorConsole(config::Dict)
     nm = get(config, :name, "STDOUT")
     lyt= get(config, :layout, nothing)
     io = get(config, :io, :STDOUT)
-    ColorConsole(nm, LAYOUT(lyt), LifeCycle.INITIALIZED, io == :STDOUT ? STDOUT : STDERR)
+    flt = get(config, :filter, nothing)
+    ColorConsole(nm, LAYOUT(lyt), FILTER(flt), LifeCycle.INITIALIZED, io == :STDOUT ? STDOUT : STDERR)
 end
 Console(;kwargs...) = Console(Dict{Symbol,Any}(kwargs))
 show(io::IO, apnd::ColorConsole) = print(io, "ColorConsole($(apnd.name))")

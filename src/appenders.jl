@@ -4,6 +4,7 @@ function start(apnd::Appender)
     trace(LOGGER, "Starting $apnd.")
     state!(apnd, LifeCycle.STARTING)
     isnull(layout(apnd)) && error(LOGGER, "No layout set for the appender $apnd.")
+    start(filter(apnd))
     state!(apnd, LifeCycle.STARTED)
     trace(LOGGER, "Started $apnd OK.")
 end
@@ -11,6 +12,7 @@ end
 function stop(apnd::Appender)
     trace(LOGGER, "Stopping $apnd")
     state!(apnd, LifeCycle.STOPPING)
+    stop(filter(apnd))
     state!(apnd, LifeCycle.STOPPED)
     trace(LOGGER, "Stopped $apnd OK.")
 end
@@ -40,10 +42,7 @@ module Appenders
 
     "Logs event to the referenced appender"
     function append!(ref::Reference, evnt::Event)
-        if !isnull(ref.filter)
-            #TODO: filter event
-        end
-
+        isfiltered(ref.filter, evnt) && return
         !isnull(evnt.level) && ref.level < get(evnt.level) && return
 
         #TODO: handle recursive calls

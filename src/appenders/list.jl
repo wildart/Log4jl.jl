@@ -6,6 +6,7 @@
 type List <: Appender
     name::AbstractString
     layout::LAYOUT
+    filter::FILTER
     state::LifeCycle.State
 
     events::Vector{Event}
@@ -15,9 +16,9 @@ type List <: Appender
     raw::Bool
     newLine::Bool
 
-    List(name::AbstractString) = new(name, LAYOUT(), LifeCycle.INITIALIZED, Event[], Message[], UInt8[], false, false)
-    function List(name::AbstractString, layout::LAYOUT; raw=false, newline=false)
-        apndr = new(name, layout, LifeCycle.INITIALIZED, Event[], Message[], UInt8[], raw, newline)
+    List(name::AbstractString) = new(name, LAYOUT(), FILTER(), LifeCycle.INITIALIZED, Event[], Message[], UInt8[], false, false)
+    function List(name::AbstractString, lyt::LAYOUT, flt::FILTER; raw=false, newline=false)
+        apndr = new(name, lyt, flt, LifeCycle.INITIALIZED, Event[], Message[], UInt8[], raw, newline)
         if !isnull(apndr.layout)
             hdr = header(layout)
             if length(hdr) > 0
@@ -28,15 +29,17 @@ type List <: Appender
     end
 end
 function List(config::Dict)
-    nm = get(config, "name", "List")
-    lyt= get(config, :layout, nothing)
-    raw= get(config, "raw", false)
-    nl = get(config, "newline", false)
-    List(nm, LAYOUT(lyt), raw=raw, newline=nl)
+    nm  = get(config, :name, "List")
+    lyt = get(config, :layout, nothing)
+    flt = get(config, :filter, nothing)
+    raw = get(config, :raw, false)
+    nl  = get(config, :newline, false)
+    List(nm, LAYOUT(lyt), FILTER(flt), raw=raw, newline=nl)
 end
+List(;kwargs...) = List(Dict{Symbol,Any}(kwargs))
+
 show(io::IO, apnd::List) = print(io, "List["* (isnull(apnd.layout) ? "evnts=$(length(apnd.events))" : "msgs=$(length(apnd.messages))")*", state=$(apnd.state))")
 name(apnd::List) = isempty(apnd.name) ? string(typeof(apnd)) : apnd.name
-layout(apnd::List) = apnd.layout
 
 function append!(apnd::List, evnt::Event)
     if isnull(apnd.layout)
