@@ -15,12 +15,12 @@ MarkerFilter(marker::Symbol) = MarkerFilter(marker, FilterResult.NEUTRAL, Filter
 
 "Make the filter available for use."
 function start(flt::MarkerFilter)
-    state!(cfg, LifeCycle.STARTED)
+    state!(flt, LifeCycle.STARTED)
 end
 
 "Disable the filter."
 function stop(flt::MarkerFilter)
-    state!(cfg, LifeCycle.STOPPED)
+    state!(flt, LifeCycle.STOPPED)
 end
 
 filter{E <: Event}(flt::MarkerFilter, evnt::E) = filter(flt, marker(evnt))

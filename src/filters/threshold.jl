@@ -16,12 +16,12 @@ ThresholdFilter() = ThresholdFilter(Level.ERROR)
 
 "Make the filter available for use."
 function start(flt::ThresholdFilter)
-    state!(cfg, LifeCycle.STARTED)
+    state!(flt, LifeCycle.STARTED)
 end
 
 "Disable the filter."
 function stop(flt::ThresholdFilter)
-    state!(cfg, LifeCycle.STOPPED)
+    state!(flt, LifeCycle.STOPPED)
 end
 
 filter{E <: Event}(flt::ThresholdFilter, evnt::E) = filter(flt, level(evnt))

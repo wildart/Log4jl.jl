@@ -24,6 +24,10 @@ module Fixtures
     level(evnt::TestEvent) = TESTLEVEL
     marker(evnt::TestEvent) = Log4jl.MARKER(TESTMARKER)
 
+    type TestFilter <: Log4jl.Filter
+    end
+    TESTFILTER = TestFilter()
+
     type InvalidAppender <: Log4jl.Appender
     end
 
