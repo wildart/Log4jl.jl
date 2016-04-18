@@ -137,7 +137,7 @@ function configure(cfg::YamlConfiguration)
                 aref = lcconf_aref["ref"]
                 if haskey(cfg.appenders, aref)
                     apnd = cfg.appenders[aref]
-                    reference!(lc, apnd, configlevel(lcconf_aref))
+                    reference!(lc, apnd, configlevel(lcconf_aref)) #TODO: add filters
                 else
                     error(LOGGER, "Unable to locate appender '$aref' for logger '$lcname'")
                 end

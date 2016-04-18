@@ -19,17 +19,17 @@ module LifeCycle
 end
 
 "Starts a life cycle"
-start{T<:LifeCycle.Object}(lc::T) = throw(AssertionError("Function 'start' is not implemented for type $(typeof(lc))"))
+start{T<:LifeCycle.Object}(lco::T) = throw(AssertionError("Function 'start' is not implemented for type $(typeof(lco))"))
 
 "Stops a life cycle"
-stop{T<:LifeCycle.Object}(lc::T) = throw(AssertionError("Function 'stop' is not implemented for type $(typeof(lc))"))
+stop{T<:LifeCycle.Object}(lco::T) = throw(AssertionError("Function 'stop' is not implemented for type $(typeof(lco))"))
 
 "Returns a life cycle state"
-state{T<:LifeCycle.Object}(lc::T) = isdefined(lc, :state) ? lc.state : throw(AssertionError("Field 'state' is not defined in type $(typeof(lc))"))
+state{T<:LifeCycle.Object}(lco::T) = isdefined(lco, :state) ? lco.state : throw(AssertionError("Field 'state' is not defined in type $(typeof(lco))"))
 #state{T<:LifeCycle.Object}(lc::T) = throw(AssertionError("Function 'state' is not implemented for type $(typeof(lc))"))
 
 "Sets a life cycle state"
-state!{T<:LifeCycle.Object}(lc::T, st::LifeCycle.State) = isdefined(lc, :state) ? (lc.state = st) : throw(AssertionError("Field 'state' is not defined in type $(typeof(lc))"))
+state!{T<:LifeCycle.Object}(lco::T, st::LifeCycle.State) = isdefined(lco, :state) ? (lco.state = st) : throw(AssertionError("Field 'state' is not defined in type $(typeof(lco))"))
 #state!{T<:LifeCycle.Object}(lc::T, st::LifeCycle.State) = throw(AssertionError("Function 'state!' is not implemented for type $(typeof(lc))"))
 
 
@@ -122,13 +122,31 @@ string(lyt::StringLayout, evnt::Event) = throw(AssertionError("Function 'string'
 string(lyt::LAYOUT, evnt::Event) = !isnull(lyt) ? string(get(lyt), evnt) : "No layout present!"
 
 
+""" Abstract event filter """
+abstract Filter <: LifeCycle.Object
+typealias FILTER Nullable{Filter}
+
+""" Supports event filtering """
+abstract Filterable <: LifeCycle.Object
+
+module FilterResult
+    @enum ResultType ACCEPT NEUTRAL DENY
+end
+
+""" Returns `FILTER` object """
+filter(fltrbl::Filterable) = isdefined(fltrbl, :filter) ? fltrbl.filter : throw(AssertionError("Define field 'filter' in type $(typeof(fltrbl))"))
+"""Determines if the event should be filtered.
+Returns `true` if the event should be filtered, `false` otherwise.
+"""
+isfiltered(flt::FILTER, evnt::Event) = !isnull(flt) && filter(get(flt), evnt) == FilterResult.DENY
+isfiltered(fltrbl::Filterable, evnt::Event) = isfiltered(filter(fltrbl), evnt)
+
 """ Abstract appender
 
-Any appender implementation must have tree fields:
+Any appender implementation must have two fields:
 
 - `name`::AbstractString - appender name for reference
 - `layout`::Nullable{`Layout`} - layout object for output modification
-- `filter`::Nullable{`Filter`} - appender filter object
 
 In addition to basic fields, every appender should have a method `append!`:
 
@@ -137,7 +155,7 @@ In addition to basic fields, every appender should have a method `append!`:
 *Note:* All derived types should have a constructor which accepts `Dict{Symbol,Any}` object as a parameter.
 Passed dictionary object should contain various initialization parameters. One of the parameters should have a key `:layout` with `Layout` object as its value.
 """
-abstract Appender <: LifeCycle.Object
+abstract Appender <: Filterable
 typealias APPENDER Nullable{Appender}
 typealias APPENDERS Dict{AbstractString, Appender}
 
@@ -146,9 +164,6 @@ name(apnd::Appender) = isdefined(apnd, :name) ? apnd.name : throw(AssertionError
 
 """ Returns layout of the appender """
 layout(apnd::Appender) = isdefined(apnd, :layout) ? apnd.layout : throw(AssertionError("Define field 'layout' in type $(typeof(apnd))"))
-
-""" Returns layout of the appender """
-filter(apnd::Appender) = isdefined(apnd, :filter) ? apnd.filter : throw(AssertionError("Define field 'filter' in type $(typeof(apnd))"))
 
 """ Adds event to the appender """
 append!(apnd::Appender, evnt::Event) = throw(AssertionError("Function 'append!' is not implemented for type $(typeof(apnd))"))
@@ -170,7 +185,7 @@ Any configuration must implement following set of methods:
 - loggers(Configuration) -> Dict{AbstractString, LoggerConfig}
 - appenders(Configuration) -> Dict{AbstractString, Appender}
 """
-abstract Configuration <: LifeCycle.Object
+abstract Configuration <: Filterable
 typealias CONFIGURATION Nullable{Configuration}
 
 show(io::IO, cfg::Configuration) = print(io, """Configuration($(cfg.name), $(isempty(cfg.source) ? "" : cfg.source*", ")$(cfg.state))""")
@@ -193,8 +208,6 @@ appender(cfg::Configuration, name::AbstractString) = throw(AssertionError("Funct
 "Returns a list of `Appender`s from the configuration"
 appenders(cfg::Configuration) = throw(AssertionError("Function 'appenders' is not implemented for type $(typeof(cfg))"))
 
-"Returns a `FILTER` in the configuration"
-filter(cfg::Configuration) = throw(AssertionError("Function 'filter' is not implemented for type $(typeof(cfg))"))
 
 """
 Abstract Logger Type
