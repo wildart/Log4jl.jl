@@ -7,5 +7,6 @@ filter(flt::Filter, level::Level.EventLevel, marker::MARKER, msg) = FilterResult
 start(flt::FILTER) = !isnull(flt) && start(get(flt))
 stop(flt::FILTER) = !isnull(flt) && stop(get(flt))
 
+include("filters/composite.jl")
 include("filters/marker.jl")
 include("filters/threshold.jl")

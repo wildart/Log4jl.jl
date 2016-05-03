@@ -23,16 +23,23 @@ module Appenders
     import ..Log4jl: Appender, layout, name,
                      Event, level,
                      Message, Level,
-                     Filter, FILTER,
+                     Filter, Filterable, FILTER, isfiltered,
                      Layout, LAYOUT, header, footer, format,
                      LifeCycle, start, stop, state, state!,
-                     LOG4JL_LINE_SEPARATOR
+                     LOG4JL_LINE_SEPARATOR, LOGGER
 
     import Base: empty!, write, append!, string, show
 
     export name, layout, append!, start, stop
 
-    "An `Appender` reference"
+    "`Appender` control"
+    type Control <: Filterable
+        appender::Appender
+        level::Level.EventLevel
+        filter::FILTER
+    end
+
+    "`Appender` reference"
     type Reference
         appender::Appender
         level::Level.EventLevel

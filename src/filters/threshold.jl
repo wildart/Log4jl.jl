@@ -14,6 +14,27 @@ end
 ThresholdFilter(lvl::Level.EventLevel) = ThresholdFilter(lvl, FilterResult.NEUTRAL, FilterResult.DENY)
 ThresholdFilter() = ThresholdFilter(Level.ERROR)
 
+function ThresholdFilter(config::Dict{AbstractString,Any})
+    lvl = if haskey(config, "level")
+        get(getlevel(config["level"]), Level.ERROR)
+    else
+        Level.ERROR
+    end
+    rmatch = if haskey(config, "match")
+        evaltype(config["match"], "FilterResult")
+    else
+        FilterResult.NEUTRAL
+    end
+    rmismatch = if haskey(config, "mismatch")
+        evaltype(config["mismatch"], "FilterResult")
+    else
+        FilterResult.DENY
+    end
+    ThresholdFilter(lvl, rmatch, rmismatch)
+end
+ThresholdFilter(;kwargs...) = map(e->(string(e[1]),e[2]), kwargs) |> Dict{AbstractString,Any} |> ThresholdFilter
+
+
 "Make the filter available for use."
 function start(flt::ThresholdFilter)
     state!(flt, LifeCycle.STARTED)
@@ -25,4 +46,5 @@ function stop(flt::ThresholdFilter)
 end
 
 filter{E <: Event}(flt::ThresholdFilter, evnt::E) = filter(flt, level(evnt))
+filter(flt::ThresholdFilter, level::Level.EventLevel, marker::MARKER, msg) = filter(flt, level)
 filter(flt::ThresholdFilter, lvl::Level.EventLevel) = flt.level >= lvl ? flt.match : flt.mismatch

@@ -4,11 +4,11 @@ configuration:
   customlevels:
     diag: 350
     verbose: 150
-  filters:
-    MarkerFilter:
-      marker: FLOW
-      match: ACCEPT
-      mismatch: DENY
+  MarkerFilter:
+    marker: FLOW
+    match: ACCEPT
+    mismatch: DENY
+  ThresholdFilter:
 
   properties:
     property:
@@ -28,8 +28,7 @@ configuration:
         pattern: "%D %5p %C [%t] %u %l %r %m%n"
     List:
       name: LIST
-      filters:
-        ThresholdFilter
+      ThresholdFilter:
 
   loggers:
     logger:

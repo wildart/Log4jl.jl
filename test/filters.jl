@@ -20,7 +20,7 @@ facts("Filters") do
         flt = MarkerFilter(Fixtures.TESTMARKER, FilterResult.DENY, FilterResult.ACCEPT)
         @fact isfiltered(FILTER(flt), evnt) --> true
         @fact filter(flt, evnt) --> FilterResult.DENY
-        @fact filter(flt, Fixtures.TESTLEVEL, MARKER(Fixtures.TESTMARKER), Fixtures.TESTMSG) --> FilterResult.NEUTRAL
+        @fact filter(flt, Fixtures.TESTLEVEL, MARKER(Fixtures.TESTMARKER), Fixtures.TESTMSG) --> FilterResult.DENY
         @fact state(flt) --> Log4jl.LifeCycle.INITIALIZED
         start(FILTER(flt))
         @fact state(flt) --> Log4jl.LifeCycle.STARTED

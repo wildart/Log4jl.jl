@@ -160,7 +160,11 @@ configuration:
 
 ## Filters
 
-Filters allow logged `Event`s to be evaluated to determine if or how they should be published. A `Filter` will be called on one of its `filter` methods and will return a `FilterResult`, which is an `Enum` that has one of 3 values: `ACCEPT`, `DENY` or `NEUTRAL`.
+Filters allow logged `Event`s to be evaluated to determine if or how they should be published. A `Filter` will be called on one of its `filter` methods and will return a `FilterResult`, which is an `Enum` that has one of 3 values:
+
+- `ACCEPT`: no filters called, accept event
+- `DENY`: ignore event, return to caller
+- `NEUTRAL`: pass event to other filters
 
 Filters may be configured in one of four locations:
 
@@ -197,10 +201,6 @@ Filters may be configured in one of four locations:
 ### Missing
 - On-fly reconfiguration
 - Multi-threading/processing support
-- Filters
-    - Accept: no filters called, accept event
-    - Deny: ignore event, return to caller
-    - Neutral: pass event to other filters
 - Lookups
 - Appended additivity: event processed by logger and all its ancestors.
 - Configuration formats: JSON, XML, DSL (macro based)

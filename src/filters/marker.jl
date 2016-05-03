@@ -13,6 +13,26 @@ type MarkerFilter <: Filter
 end
 MarkerFilter(marker::Symbol) = MarkerFilter(marker, FilterResult.NEUTRAL, FilterResult.DENY)
 
+function MarkerFilter(config::Dict{AbstractString,Any})
+    if !haskey(config, "marker")
+        error(LOGGER, "No marker found. `marker` parameter is required for `MarkerFilter`")
+        return nothing
+    end
+    fmarker = symbol(config["marker"])
+    rmatch = if haskey(config, "match")
+        evaltype(config["match"], "FilterResult")
+    else
+        FilterResult.NEUTRAL
+    end
+    rmismatch = if haskey(config, "mismatch")
+        evaltype(config["mismatch"], "FilterResult")
+    else
+        FilterResult.DENY
+    end
+    MarkerFilter(fmarker, rmatch, rmismatch)
+end
+MarkerFilter(;kwargs...) = map(e->(string(e[1]),e[2]), kwargs) |> Dict{AbstractString,Any} |> MarkerFilter
+
 "Make the filter available for use."
 function start(flt::MarkerFilter)
     state!(flt, LifeCycle.STARTED)
@@ -24,4 +44,5 @@ function stop(flt::MarkerFilter)
 end
 
 filter{E <: Event}(flt::MarkerFilter, evnt::E) = filter(flt, marker(evnt))
+filter(flt::MarkerFilter, level::Level.EventLevel, marker::MARKER, msg) = filter(flt, marker)
 filter(flt::MarkerFilter, mkr::MARKER) = (!isnull(mkr) && get(mkr) == flt.marker) ? flt.match : flt.mismatch

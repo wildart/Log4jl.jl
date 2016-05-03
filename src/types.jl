@@ -3,16 +3,16 @@
 This is interface for handling the life cycle context of an object.
 """
 module LifeCycle
-    "Abstarct object type"
+    "Abstract life cycle object"
     abstract Object
 
     @enum(State,
-          INITIALIZED,# Initialized but not yet started.
-          STARTING,   # In the process of starting.
-          STARTED,    # Has started.
-          STOPPING,   # Stopping is in progress.
-          STOPPED,    # Has stopped.
-          INVALID)    # Something happend
+        INITIALIZED,# Initialized but not yet started.
+        STARTING,   # In the process of starting.
+        STARTED,    # Has started.
+        STOPPING,   # Stopping is in progress.
+        STOPPED,    # Has stopped.
+        INVALID)    # Something happened
 
     doc"""Life cycle states enumeration"""
     State
@@ -26,11 +26,9 @@ stop{T<:LifeCycle.Object}(lco::T) = throw(AssertionError("Function 'stop' is not
 
 "Returns a life cycle state"
 state{T<:LifeCycle.Object}(lco::T) = isdefined(lco, :state) ? lco.state : throw(AssertionError("Field 'state' is not defined in type $(typeof(lco))"))
-#state{T<:LifeCycle.Object}(lc::T) = throw(AssertionError("Function 'state' is not implemented for type $(typeof(lc))"))
 
 "Sets a life cycle state"
 state!{T<:LifeCycle.Object}(lco::T, st::LifeCycle.State) = isdefined(lco, :state) ? (lco.state = st) : throw(AssertionError("Field 'state' is not defined in type $(typeof(lco))"))
-#state!{T<:LifeCycle.Object}(lc::T, st::LifeCycle.State) = throw(AssertionError("Function 'state!' is not implemented for type $(typeof(lc))"))
 
 
 """ Abstract log message
@@ -46,7 +44,7 @@ typealias MESSAGE Nullable{Message}
 """ Returns message format as string. """
 format(msg::Message)     = throw(AssertionError("Function 'format' is not implemented"))
 
-""" Returns message formated as string. """
+""" Returns message formatted as string. """
 formatted(msg::Message)  = throw(AssertionError("Function 'formatted' is not implemented"))
 
 """ Returns message parameters, if any. """
@@ -126,7 +124,10 @@ string(lyt::LAYOUT, evnt::Event) = !isnull(lyt) ? string(get(lyt), evnt) : "No l
 abstract Filter <: LifeCycle.Object
 typealias FILTER Nullable{Filter}
 
-""" Supports event filtering """
+""" Supports event filtering
+
+All filterable types should have `state::LifeCycle.State` and `filter::FILTER` fields.
+"""
 abstract Filterable <: LifeCycle.Object
 
 module FilterResult
@@ -175,7 +176,7 @@ Any configuration type implementation must have two fields:
 
 - `name`::AbstractString, the configuration name for a reference
 - `source`::AbstractString, a source of the configuration
-- `state`::LifeCycle.Object, a life cycle state
+- `state`::LifeCycle.State, a life cycle state
 - `root`::LoggerConfig, the root logger configuration
 
 Any configuration must implement following set of methods:
