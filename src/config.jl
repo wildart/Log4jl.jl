@@ -10,10 +10,10 @@ function start(cfg::Configuration)
     # start context-wide filters
     start(filter(cfg))
 
-    #TODO: start loggers, it's needed for filters
-    # for l in values(loggers(cfg))
-    #     start(l)
-    # end
+    # start logger configurations
+    for lc in values(loggers(cfg))
+        start(lc)
+    end
 
     # Start all appenders
     for apnd in values(appenders(cfg))
@@ -44,12 +44,12 @@ function stop(cfg::Configuration)
     # stop context-wide filters
     stop(filter(cfg))
 
-    #TODO: stop loggers' filters
+    # stop logger configuration filters
     c = 0
-    # for lc in values(loggers(cfg))
-    #     stop(lc)
-    #     c+=1
-    # end
+    for lc in values(loggers(cfg))
+        stop(lc)
+        c+=1
+    end
     trace(LOGGER, "Stopped $c loggers in $(cfg)")
 
     # stop(root) #TODO: stop root, it's needed for filters
@@ -84,9 +84,10 @@ function logger!(cfg::Configuration, lcname::AbstractString, lc::LoggerConfig)
         return nothing
     end
 end
-
-function logger!(cfg::Configuration, lcname::AbstractString, lvl::Level.EventLevel = Level.ALL)
-    lc = LoggerConfig(lcname, lvl)
+function logger!(cfg::Configuration, lcname::AbstractString,
+                lvl::Level.EventLevel = Level.ALL,
+                flt::FILTER = FILTER())
+    lc = LoggerConfig(lcname, level = lvl, filter=flt)
     return logger!(cfg, lcname, lc)
 end
 

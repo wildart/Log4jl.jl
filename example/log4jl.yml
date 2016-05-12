@@ -7,8 +7,9 @@ configuration:
   MarkerFilter:
     marker: FLOW
     match: ACCEPT
-    mismatch: DENY
+    mismatch: NEUTRAL
   ThresholdFilter:
+    level: ALL
 
   properties:
     property:

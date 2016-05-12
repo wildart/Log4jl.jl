@@ -1,34 +1,61 @@
 "Logger configuration"
-type LoggerConfig
+type LoggerConfig <: Filterable
     name::AbstractString
     level::LEVEL
     additive::Bool
 
-    appenders::Dict{AbstractString, Appenders.Reference}
+    appenders::AppenderReferences
     parent::Nullable{LoggerConfig}
     event::FACTORY
+
+    # Filterable
     filter::FILTER
-    includelocation::Bool
+    state::LifeCycle.State
+
     #TODO: properties::Dict{Property, Bool}
 end
 
 typealias LOGCONFIGS Dict{AbstractString, LoggerConfig}
 
 # Constructors
-function LoggerConfig(name::AbstractString, level::LEVEL,
-                      appenders::APPENDERS=APPENDERS(), filter::FILTER=FILTER();
+function LoggerConfig(name::AbstractString;
+                      level::LEVEL = LEVEL(),
+                      filter::FILTER=FILTER(),
                       additive::Bool = false)
-    return LoggerConfig(name, level, additive, appenders,
-                        Nullable{LoggerConfig}(), FACTORY(LOG4JL_LOG_EVENT), filter, true)
+    return LoggerConfig(name, level, additive,
+                        AppenderReferences(),
+                        Nullable{LoggerConfig}(),
+                        FACTORY(LOG4JL_LOG_EVENT),
+                        filter, LifeCycle.INITIALIZED)
 end
-function LoggerConfig(name::AbstractString, level::Level.EventLevel,
-                      appenders::APPENDERS=APPENDERS(), filter::FILTER=FILTER();
-                      additive::Bool = false)
-    return LoggerConfig(name, LEVEL(level), additive, appenders,
-                        Nullable{LoggerConfig}(), FACTORY(LOG4JL_LOG_EVENT), filter, true)
-end
-LoggerConfig(level::Level.EventLevel) = LoggerConfig("", level)
+LoggerConfig(lvl::Level.EventLevel) = LoggerConfig(ROOT_LOGGER_NAME, level=LEVEL(lvl))
 LoggerConfig() = LoggerConfig(LOG4JL_DEFAULT_STATUS_LEVEL)
+
+"Start the logging configuration."
+function start(lc::LoggerConfig)
+    trace(LOGGER, "Starting $lc.")
+    state!(lc, LifeCycle.STARTING)
+    start(filter(lc))
+    state!(lc, LifeCycle.STARTED)
+    trace(LOGGER, "Started $lc OK.")
+end
+
+"Disable the logging configuration."
+function stop(lc::LoggerConfig)
+    trace(LOGGER, "Stopping $lc.")
+    # change state
+    state!(lc, LifeCycle.STOPPING)
+    # stop and remove appenders
+    for (apnm, ref) in appenders
+        delete!(appenderRefs, apnm)
+        stop(ref)
+    end
+    # stop filter
+    stop(filter(lc))
+    # change state
+    state!(lc, LifeCycle.STOPPED)
+    trace(LOGGER, "Stoped $lc OK.")
+end
 
 "Returns the logger name"
 name(lc::LoggerConfig) = lc.name
@@ -43,8 +70,10 @@ isadditive(lc::LoggerConfig) = lc.additive
 
 "Logs an event"
 function log(lc::LoggerConfig, evnt::Event)
-    isfiltered(lc.filter, evnt) && return
-    map(ref->append!(ref, evnt), values(lc.appenders))
+    isfiltered(lc.filter, evnt) && return # Logger filters are execuded
+    for ref in values(lc.appenders)
+        append!(ref, evnt)
+    end
     lc.additive && !isnull(lc.parent) && log(get(lc.parent), evnt)
 end
 function log(lc::LoggerConfig, logger, fqmn, level, marker, msg)
@@ -57,10 +86,10 @@ show(io::IO, lc::LoggerConfig) = print(io, "LoggerConfig(", isempty(lc.name) ? "
 references(lc::LoggerConfig) = values(lc.appenders)
 
 "Adds an appender reference to configuration"
-function reference!(lc::LoggerConfig, apndr::Appender, lvl::LEVEL=LEVEL(), filter::FILTER=FILTER())
+function reference!(lc::LoggerConfig, apndr::Appender, lvl::LEVEL=LEVEL(), flt::FILTER=FILTER())
     apn = name(apndr)
     lvl = get(lvl, Level.ALL)
-    apndref = Appenders.Reference(apndr, lvl, filter)
+    apndref = Appenders.Reference(apndr, level=lvl, filter=flt)
     lc.appenders[apn] = apndref
     return apndref
 end

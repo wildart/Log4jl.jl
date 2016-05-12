@@ -28,15 +28,15 @@ type List <: Appender
         apndr
     end
 end
-function List(config::Dict)
-    nm  = get(config, :name, "List")
-    lyt = get(config, :layout, nothing)
-    flt = get(config, :filter, nothing)
-    raw = get(config, :raw, false)
-    nl  = get(config, :newline, false)
+function List(config::Dict{AbstractString,Any})
+    nm  = get(config, "name", "List")
+    lyt = get(config, "layout", nothing)
+    flt = get(config, "filter", nothing)
+    raw = get(config, "raw", false)
+    nl  = get(config, "newline", false)
     List(nm, LAYOUT(lyt), FILTER(flt), raw=raw, newline=nl)
 end
-List(;kwargs...) = List(Dict{Symbol,Any}(kwargs))
+List(;kwargs...) = map(e->(string(e[1]),e[2]), kwargs) |> Dict{AbstractString,Any} |> List
 
 show(io::IO, apnd::List) = print(io, "List["* (isnull(apnd.layout) ? "evnts=$(length(apnd.events))" : "msgs=$(length(apnd.messages))")*", state=$(apnd.state))")
 name(apnd::List) = isempty(apnd.name) ? string(typeof(apnd)) : apnd.name

@@ -13,6 +13,7 @@ global LOG4JL_DEFAULT_STATUS_LEVEL
 global LOG4JL_INTERNAL_STATUS_LEVEL
 global LOG4JL_LOG_EVENT
 global LOG4JL_CONTEXT_SELECTOR
+global LOGGER
 
 const LOG4JL_CONFIG_DEFAULT_PREFIX = "log4jl"
 const LOG4JL_CONFIG_EXTS = Dict{Symbol, Vector{AbstractString}}()
@@ -39,9 +40,9 @@ const ROOT_LOGGER_NAME = ""
 
 function makemethods(fn::Symbol, lvl::Level.EventLevel)
     eval(Log4jl, quote
-        $fn(l::AbstractLogger, marker::MARKER, msg, params...) = log(l, string(current_module()), $lvl, marker, msg, params...)
-        $fn(l::AbstractLogger, marker::Symbol, msg, params...) = log(l, string(current_module()), $lvl, MARKER(marker), msg, params...)
-        $fn(l::AbstractLogger, msg, params...)                 = log(l, string(current_module()), $lvl, MARKER(), msg, params...)
+        $fn(l::AbstractLogger, marker::MARKER, msg, params...) = log(l, $lvl, marker, msg, params...)
+        $fn(l::AbstractLogger, marker::Symbol, msg, params...) = log(l, $lvl, MARKER(marker), msg, params...)
+        $fn(l::AbstractLogger, msg, params...)                 = log(l, $lvl, msg, params...)
     end)
 end
 

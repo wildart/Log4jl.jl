@@ -5,6 +5,10 @@ function log(lgr::AbstractLogger, fqmn::AbstractString, lvl::Level.EventLevel, m
     end
     return
 end
+log(lgr::AbstractLogger, lvl::Level.EventLevel, mkr::MARKER, msg, params...) =
+    log(lgr, string(current_module()), lvl, mkr, msg, params...)
+log(lgr::AbstractLogger, lvl::Level.EventLevel, msg, params...) =
+    log(lgr, lvl, MARKER(), msg, params...)
 
 
 "Logger wrapper for `LoggerConfig`"
@@ -24,7 +28,10 @@ level!(lgr::Logger, lvl::Level.EventLevel) = level!(lgr.config, lvl)
 log(lgr::Logger, fqmn::AbstractString, lvl::Level.EventLevel, mkr::MARKER, msg::Message) =
     log(lgr.config, name(lgr), fqmn, lvl, mkr, msg)
 
-"Check if message is valid for logging"
+""" Check if message is valid for logging
+
+Context-wide (configuration) filters and level checks are execuded.
+"""
 function isenabled(lgr::Logger, lvl::Level.EventLevel, mkr::MARKER, msg, params...)
     if !isnull(lgr.filter)
         r = filter(get(lgr.filter), lvl, mkr, msg)

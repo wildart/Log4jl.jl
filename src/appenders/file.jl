@@ -17,21 +17,21 @@ type File <: Appender
     File(nm::AbstractString, lyt::LAYOUT, flt::FILTER) = new(nm, lyt, flt, LifeCycle.INITIALIZED)
 end
 
-function File(config::Dict)
-    nm = get(config, :name, "FileAppender")
-    fn = get(config, :filename, nothing)
-    lyt= get(config, :layout, nothing)
-    flt = get(config, :filter, nothing)
-    doappend = get(config, :append,  true)
-    doflush  = get(config, :flush,   true)
-    dolock   = get(config, :locking, false)
+function File(config::Dict{AbstractString,Any})
+    nm = get(config, "name", "FileAppender")
+    fn = get(config, "filename", nothing)
+    lyt= get(config, "layout", nothing)
+    flt= get(config, "filter", nothing)
+    doappend = get(config, "append",  true)
+    doflush  = get(config, "flush",   true)
+    dolock   = get(config, "locking", false)
 
     file = File(nm, LAYOUT(lyt), FILTER(flt))
-    if fn !== null
+    if fn !== nothing
         file.filename = fn
     else
         file.state = LifeCycle.INVALID
-        error(LOGGER, "No `filename` provided for the appender $apnd.")
+        error(LOGGER, "No `filename` provided for the appender `File`.")
     end
     file.append = doappend
     file.flush = doflush
@@ -39,8 +39,8 @@ function File(config::Dict)
 
     return file
 end
-File(;kwargs...) = File(Dict{Symbol,Any}(kwargs))
-show(io::IO, apnd::File) = print(io, "FileAppender($(apnd.filename), $(apnd.state))")
+File(;kwargs...) = map(e->(string(e[1]),e[2]), kwargs) |> Dict{AbstractString,Any} |> File
+show(io::IO, apnd::File) = print(io, "FileAppender($(isdefined(apnd, :filename) ? apnd.filename : ""), $(apnd.state))")
 
 name(apnd::File) = isempty(apnd.name) ? string(typeof(apnd)) : apnd.name
 layout(apnd::File) = apnd.layout

@@ -169,6 +169,12 @@ layout(apnd::Appender) = isdefined(apnd, :layout) ? apnd.layout : throw(Assertio
 """ Adds event to the appender """
 append!(apnd::Appender, evnt::Event) = throw(AssertionError("Function 'append!' is not implemented for type $(typeof(apnd))"))
 
+""" Ignore exception in appender.
+
+Some appenders need to propagate exceptions back to the application.
+When `ignoreexceptions` returns `false`, the exception will be allow to percolate.
+"""
+ignoreexceptions(apnd::Appender) = true
 
 """ Abstract configuration
 

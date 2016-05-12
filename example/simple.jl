@@ -99,3 +99,5 @@ println()
 
 X.test_log1()
 println("END\n")
+
+xdump(X.logger)

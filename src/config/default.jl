@@ -39,7 +39,6 @@ end
 appender(cfg::DefaultConfiguration, name::AbstractString) = get(cfg.appenders, name, nothing)
 appenders(cfg::DefaultConfiguration) = cfg.appenders
 loggers(cfg::DefaultConfiguration) = cfg.loggers
-filter(cfg::DefaultConfiguration) = cfg.filter
 
 function configure(cfg::DefaultConfiguration)
     # Add basic console appender

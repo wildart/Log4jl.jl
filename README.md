@@ -170,8 +170,8 @@ Filters may be configured in one of four locations:
 
 - **Context-wide Filters** are configured directly in the configuration. Events that are rejected by these filters will not be passed to loggers for further processing. Once an event has been accepted by a context-wide filter it will not be evaluated by any other context-wide filters nor will the Logger's Level be used to filter the event. The event will be evaluated by logger and appender filters however.
 - **Logger Filters** are configured on a specified `Logger`. These are evaluated after the context-wide filters and the log `Level` for the `Logger`. Events that are rejected by these filters will be discarded and the event will not be passed to a parent `Logger` regardless of the additivity setting.
-- **Appender Filters** are used to determine if a specific `Appender` should handle the formatting and publication of the event.
 - **Appender Reference Filters** are used to determine if a `Logger` should route the event to an appender.
+- **Appender Filters** are used to determine if a specific `Appender` should handle the formatting and publication of the event.
 
 
 ## Dev Notes
@@ -202,8 +202,7 @@ Filters may be configured in one of four locations:
 - On-fly reconfiguration
 - Multi-threading/processing support
 - Lookups
-- Appended additivity: event processed by logger and all its ancestors.
-- Configuration formats: JSON, XML, DSL (macro based)
+- Configuration formats: JSON, XML, TOML
 - Handle configuration recursion
 
 ### Message

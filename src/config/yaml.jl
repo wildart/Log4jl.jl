@@ -21,6 +21,7 @@ LOG4JL_CONFIG_EXTS[:YAML]  = [".yaml", ".yml"]
 function YamlConfiguration(cfgloc::AbstractString, cfgname::AbstractString="YAML")
     eval(:(import YAML)) # Package lazy eval
     conf = YAML.load(open(cfgloc))
+    fltr = FILTER()
 
     # Set status logger parameters
     if haskey(conf, "configuration")
@@ -32,20 +33,22 @@ function YamlConfiguration(cfgloc::AbstractString, cfgname::AbstractString="YAML
         end
         # status
         haskey(stat, "status") && level!(LOGGER, evaltype((stat["status"] |> uppercase), "Level"))
+        # filters
+        fltrs = filterconfig(stat, "filter")
+        if length(fltrs) > 0
+            fltr = parsefilters(fltrs)
+        end
     else
         error(LOGGER, "Malformed configuration: `configuration` node does not exist.")
     end
-
     YamlConfiguration(cfgname, cfgloc, LifeCycle.INITIALIZED, LoggerConfig(),
-                      PROPERTIES(), APPENDERS(), LOGCONFIGS(), FILTER(),
-                      conf)
+                      PROPERTIES(), APPENDERS(), LOGCONFIGS(), fltr, conf)
 end
 getconfig(::Type{YamlConfiguration}, cfgloc::AbstractString, cfgname::AbstractString="YAML") = YamlConfiguration(cfgloc, cfgname)
 
 appender(cfg::YamlConfiguration, name::AbstractString) = get(cfg.appenders, name, nothing)
 appenders(cfg::YamlConfiguration) = cfg.appenders
 loggers(cfg::YamlConfiguration) = cfg.loggers
-filter(cfg::YamlConfiguration) = cfg.filter
 
 function configure(cfg::YamlConfiguration)
     # if configuration is malformed
@@ -60,6 +63,7 @@ function configure(cfg::YamlConfiguration)
     haskey(conf, "properties") && for p in values(conf["properties"])
         cfg.properties[p["name"]] = p["value"]
     end
+
     # update appenders and loggers with pattern values
     for (k,v) in cfg.properties
         haskey(conf, "appenders") && subst_value(conf["appenders"], k, v)
@@ -73,27 +77,37 @@ function configure(cfg::YamlConfiguration)
                    evaltype(atype, "") :
                    evaltype(atype, "Appenders")
         apndType === Void && continue
+        apndCfg = Dict{AbstractString,Any}(aconf)
 
         # find first layout description and create layout object
-        akeys = collect(keys(aconf))
-        lidxs = find(s->contains(s,"layout"), map(lowercase, akeys))
-        if length(lidxs) > 0 # take first layout description
-            strLType = akeys[lidxs[1]]
+        lyts = filterconfig(aconf, "layout")
+        if length(lyts) > 0 # take first layout description
+            strLType = first(keys(lyts))
             # get type from internal
             lytType = contains(strLType, ".") ?
                       evaltype(strLType, "") :
                       evaltype(strLType, "Layouts")
             if lytType !== Void
-                aconf[:layout] = lytType(aconf[strLType])
+                apndCfg["layout"] = lytType(aconf[strLType])
+            end
+            delete!(apndCfg, strLType)
+        end
+
+        # check filters
+        fltrs = filterconfig(apndCfg, "filter")
+        if length(fltrs) > 0
+            fltr = parsefilters(fltrs)
+            apndCfg["filter"] = fltr
+            for strFType in keys(fltrs)
+                delete!(apndCfg, strFType)
             end
         end
 
         # create appender object
-        cfg.appenders[aconf["name"]] = apndType(aconf)
+        cfg.appenders[aconf["name"]] = apndType(apndCfg)
     end
 
     refs = Dict[]
-
     # add loggers
     if haskey(conf, "loggers")
         lconf = conf["loggers"]
@@ -117,7 +131,8 @@ function configure(cfg::YamlConfiguration)
                 lcname = lcconf["name"]
                 lcadd = get(lcconf, "additivity", false)
                 lclvl = configlevel(lcconf)
-                logger!(cfg, lcname, LoggerConfig(lcname, lclvl, additive=lcadd))
+                #TODO: add filters
+                logger!(cfg, lcname, LoggerConfig(lcname, level=lclvl, additive=lcadd))
             end
             append!(refs, lconf["logger"])
         end
@@ -137,7 +152,8 @@ function configure(cfg::YamlConfiguration)
                 aref = lcconf_aref["ref"]
                 if haskey(cfg.appenders, aref)
                     apnd = cfg.appenders[aref]
-                    reference!(lc, apnd, configlevel(lcconf_aref)) #TODO: add filters
+                    #TODO: add filters
+                    reference!(lc, apnd, configlevel(lcconf_aref))
                 else
                     error(LOGGER, "Unable to locate appender '$aref' for logger '$lcname'")
                 end
@@ -163,4 +179,31 @@ function subst_value(conf::Dict, k::AbstractString, v::AbstractString)
         end
     end
     return conf
+end
+
+function filterconfig(conf::Dict, stype::AbstractString)
+    ckeys = collect(keys(conf))
+    lidxs = find(s->contains(s,stype), map(lowercase, ckeys))
+    return if length(lidxs) > 0
+        filter((k,v)->k in ckeys[lidxs], conf)
+    else
+        Dict()
+    end
+end
+
+function parsefilters(conf::Dict)
+    fltrs = Filter[]
+    for (fltrstrtype, fltrcfg) in conf
+        fltrtype = evaltype(fltrstrtype, "")
+        fltr = (fltrcfg === nothing) ? fltrtype() : fltrtype(Dict{AbstractString,Any}(fltrcfg))
+        fltr !== nothing && push!(fltrs, fltr)
+    end
+    fltrcount = length(fltrs)
+    return if fltrcount == 0
+        FILTER()
+    elseif fltrcount == 1
+        FILTER(fltrs[1])
+    else
+        FILTER(CompositeFilter(fltrs))
+    end
 end

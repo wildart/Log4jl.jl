@@ -16,14 +16,14 @@ facts("Logger Configuration") do
     end
 
     context("created with name and level parameters") do
-        lc = LoggerConfig(Fixtures.TESTNAME, Fixtures.TESTLEVEL)
-        @fact level(lc) --> Fixtures.TESTLEVEL
+        lc = LoggerConfig(Fixtures.TESTNAME)
+        @fact level(lc) --> Log4jl.LOG4JL_DEFAULT_STATUS_LEVEL
         @fact name(lc) --> Fixtures.TESTNAME
         @fact lc --> not(isadditive)
     end
 
     context("could have a different log level and a parent") do
-        lc = LoggerConfig(Fixtures.TESTNAME, Fixtures.TESTLEVELN)
+        lc = LoggerConfig(Fixtures.TESTNAME, level=Fixtures.TESTLEVELN)
         @fact level(lc) --> Fixtures.TESTLEVEL
         level!(lc, Log4jl.Level.OFF)
         @fact level(lc) --> Log4jl.Level.OFF

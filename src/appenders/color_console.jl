@@ -11,14 +11,14 @@ type ColorConsole <: Appender
 
     io::IO
 end
-function ColorConsole(config::Dict)
-    nm = get(config, :name, "STDOUT")
-    lyt= get(config, :layout, nothing)
-    io = get(config, :io, :STDOUT)
-    flt = get(config, :filter, nothing)
+function ColorConsole(config::Dict{AbstractString,Any})
+    nm = get(config,  "name", "STDOUT")
+    lyt= get(config,  "layout", nothing)
+    io = get(config,  "target", :STDOUT)
+    flt = get(config, "filter", nothing)
     ColorConsole(nm, LAYOUT(lyt), FILTER(flt), LifeCycle.INITIALIZED, io == :STDOUT ? STDOUT : STDERR)
 end
-Console(;kwargs...) = Console(Dict{Symbol,Any}(kwargs))
+ColorConsole(;kwargs...) = map(e->(string(e[1]),e[2]), kwargs) |> Dict{AbstractString,Any} |> ColorConsole
 show(io::IO, apnd::ColorConsole) = print(io, "ColorConsole($(apnd.name))")
 
 const ColorReset = UInt8[0x1b, 0x5b, 0x30, 0x6d]
